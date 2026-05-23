@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cozy HOG — Scene 01 Preview</title>
+<style>
+  :root {
+    --cream: #fcf4e6;
+    --peach: #fadcc8;
+    --sage: #c8d8c0;
+    --rose: #e6c8c4;
+    --ink: #4a3a30;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: #1c1814; color: var(--ink);
+    font-family: -apple-system, "Avenir Next", "Segoe UI", sans-serif;
+    overflow: hidden; height: 100%;
+  }
+  /* Stage scales to fit window while keeping 16:9 */
+  #stage-wrap {
+    position: fixed; inset: 0; display: grid; place-items: center;
+  }
+  #stage {
+    position: relative;
+    width: 1920px; height: 1080px;
+    background-size: cover; background-position: center;
+    transform-origin: center;
+    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+  }
+  .obj {
+    position: absolute;
+    width: 128px; height: 128px;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+  }
+  .obj:hover { transform: translate(-50%, -50%) scale(1.06); }
+  .obj.found {
+    pointer-events: none;
+    animation: vanish 0.5s ease forwards;
+  }
+  @keyframes vanish {
+    to { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+  }
+  /* Sparkle on find */
+  .sparkle {
+    position: absolute; width: 200px; height: 200px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255,240,180,0.9) 0%, rgba(255,200,120,0.4) 30%, transparent 70%);
+    animation: pop 0.7s ease-out forwards;
+  }
+  @keyframes pop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+    30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2.0); }
+  }
+  /* Hint pulse */
+  .pulse {
+    position: absolute; width: 140px; height: 140px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    border-radius: 50%;
+    background: rgba(255, 215, 130, 0.55);
+    animation: pulse 2s ease-out forwards;
+  }
+  @keyframes pulse {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+  }
+
+  /* HUD */
+  #hud-panel {
+    position: absolute; left: 16px; top: 16px;
+    width: 264px; min-height: 380px;
+    background: rgba(252, 244, 230, 0.92);
+    border: 2px solid #8c6e5a; border-radius: 14px;
+    padding: 14px 18px;
+  }
+  #hud-panel h2 { margin: 0 0 10px; font-size: 26px; font-weight: 600; letter-spacing: 0.5px; }
+  #obj-list { margin: 0; padding: 0; list-style: none; }
+  #obj-list li { padding: 4px 0; font-size: 22px; }
+  #obj-list li.found { color: #998; text-decoration: line-through; }
+  #obj-list li::before { content: "• "; }
+
+  #hint-bar {
+    position: absolute; left: 16px; bottom: 24px;
+    display: flex; gap: 16px; align-items: center;
+  }
+  #hint-btn {
+    background: var(--peach); border: 2px solid #a3735a; border-radius: 8px;
+    padding: 10px 28px; font-size: 22px; font-weight: 600; color: var(--ink);
+    cursor: pointer; font-family: inherit;
+  }
+  #hint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #hint-label { font-size: 20px; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+
+  /* Completion modal */
+  #completion {
+    position: absolute; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.45);
+  }
+  #completion.show { display: flex; }
+  #completion-card {
+    background: var(--cream); border: 3px solid #8c6e5a; border-radius: 18px;
+    padding: 40px 60px; text-align: center; min-width: 560px;
+  }
+  #completion-card h1 { margin: 0 0 16px; font-size: 48px; }
+  #completion-card p { font-size: 24px; margin: 8px 0; }
+  #replay-btn {
+    margin-top: 28px; padding: 14px 36px; font-size: 22px; font-weight: 600;
+    background: var(--peach); border: 2px solid #a3735a; border-radius: 10px;
+    cursor: pointer; font-family: inherit; color: var(--ink);
+  }
+
+  /* Help overlay */
+  #help {
+    position: fixed; right: 16px; top: 16px; z-index: 100;
+    background: rgba(0,0,0,0.6); color: white; padding: 10px 14px;
+    border-radius: 8px; font-size: 14px; max-width: 280px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+
+<div id="help">
+  <b>Cozy HOG — preview</b><br>
+  Click the 8 hidden objects in the bakery.<br>
+  Try "Hint" if you get stuck (3 per scene, 60s cooldown).<br>
+  Esc to dismiss this note.
+</div>
+
+<div id="stage-wrap">
+  <div id="stage" style="background-image:url('assets/_style_exploration/bg_throwaway_01.png')">
+    <!-- objects + HUD injected by JS -->
+    <div id="hud-panel">
+      <h2>Find:</h2>
+      <ul id="obj-list"></ul>
+    </div>
+    <div id="hint-bar">
+      <button id="hint-btn">Hint</button>
+      <span id="hint-label">Hints: 3/3</span>
+    </div>
+    <div id="completion">
+      <div id="completion-card">
+        <h1>Scene complete!</h1>
+        <p id="complete-stats"></p>
+        <button id="replay-btn">Play again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCENE = {
+  scene_id: "scene_01",
+  hidden_objects: [
+    { id: "teacup",     display_name: "Teacup",       sprite: "assets/objects/scene_01/obj_teacup.png",     position: [320, 280] },
+    { id: "key",        display_name: "Brass Key",    sprite: "assets/objects/scene_01/obj_key.png",        position: [560, 420] },
+    { id: "yarn",       display_name: "Ball of Yarn", sprite: "assets/objects/scene_01/obj_yarn.png",       position: [820, 700] },
+    { id: "candle",     display_name: "Candle",       sprite: "assets/objects/scene_01/obj_candle.png",     position: [1080, 320] },
+    { id: "letter",     display_name: "Letter",       sprite: "assets/objects/scene_01/obj_letter.png",     position: [1340, 540] },
+    { id: "mushroom",   display_name: "Mushroom",     sprite: "assets/objects/scene_01/obj_mushroom.png",   position: [1620, 760] },
+    { id: "spectacles", display_name: "Spectacles",   sprite: "assets/objects/scene_01/obj_spectacles.png", position: [480, 820] },
+    { id: "sock",       display_name: "Tiny Sock",    sprite: "assets/objects/scene_01/obj_sock.png",       position: [1180, 880] }
+  ]
+};
+
+const HINTS_PER_SCENE = 3;
+const HINT_COOLDOWN_MS = 60_000;
+
+const state = {
+  found: new Set(),
+  hintsRemaining: HINTS_PER_SCENE,
+  hintsUsed: 0,
+  cooldownEndsAt: 0,
+};
+
+const stage = document.getElementById("stage");
+const list = document.getElementById("obj-list");
+const hintBtn = document.getElementById("hint-btn");
+const hintLabel = document.getElementById("hint-label");
+const completion = document.getElementById("completion");
+const completeStats = document.getElementById("complete-stats");
+
+// Web Audio chime — synthesized so we don't need a wav file
+let audioCtx;
+function chime() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const t = audioCtx.currentTime;
+  [880, 1320].forEach((freq, i) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.15, t + 0.01 + i * 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t + i * 0.05); o.stop(t + 0.7);
+  });
+}
+
+function buildList() {
+  list.innerHTML = "";
+  SCENE.hidden_objects.forEach(o => {
+    const li = document.createElement("li");
+    li.id = "row_" + o.id;
+    li.textContent = o.display_name;
+    list.appendChild(li);
+  });
+}
+
+function placeObjects() {
+  // remove existing object elements
+  stage.querySelectorAll(".obj").forEach(e => e.remove());
+  SCENE.hidden_objects.forEach(o => {
+    const img = document.createElement("img");
+    img.className = "obj";
+    img.src = o.sprite;
+    img.alt = o.display_name;
+    img.dataset.id = o.id;
+    img.style.left = o.position[0] + "px";
+    img.style.top  = o.position[1] + "px";
+    img.addEventListener("click", () => markFound(o));
+    stage.appendChild(img);
+  });
+}
+
+function markFound(o) {
+  if (state.found.has(o.id)) return;
+  state.found.add(o.id);
+  // sparkle
+  const sp = document.createElement("div");
+  sp.className = "sparkle";
+  sp.style.left = o.position[0] + "px";
+  sp.style.top  = o.position[1] + "px";
+  stage.appendChild(sp);
+  setTimeout(() => sp.remove(), 800);
+  // strikethrough
+  const row = document.getElementById("row_" + o.id);
+  if (row) row.classList.add("found");
+  // fade sprite
+  const img = stage.querySelector(`.obj[data-id="${o.id}"]`);
+  if (img) {
+    img.classList.add("found");
+    setTimeout(() => img.remove(), 600);
+  }
+  chime();
+  if (state.found.size >= SCENE.hidden_objects.length) {
+    setTimeout(showCompletion, 700);
+  }
+}
+
+function showCompletion() {
+  completeStats.innerHTML =
+    `Found ${state.found.size} / ${SCENE.hidden_objects.length}<br>` +
+    `Hints used: ${state.hintsUsed}`;
+  completion.classList.add("show");
+}
+
+function requestHint() {
+  const now = performance.now();
+  if (now < state.cooldownEndsAt) return;
+  if (state.hintsRemaining <= 0) return;
+  const unfound = SCENE.hidden_objects.filter(o => !state.found.has(o.id));
+  if (unfound.length === 0) return;
+  const target = unfound[Math.floor(Math.random() * unfound.length)];
+  state.hintsRemaining -= 1;
+  state.hintsUsed += 1;
+  state.cooldownEndsAt = now + HINT_COOLDOWN_MS;
+  // pulse
+  const p = document.createElement("div");
+  p.className = "pulse";
+  p.style.left = target.position[0] + "px";
+  p.style.top  = target.position[1] + "px";
+  stage.appendChild(p);
+  setTimeout(() => p.remove(), 2000);
+  updateHintLabel();
+}
+
+function updateHintLabel() {
+  const now = performance.now();
+  const remainingMs = Math.max(0, state.cooldownEndsAt - now);
+  if (remainingMs > 0) {
+    hintBtn.disabled = true;
+    hintLabel.textContent = `Hints: ${state.hintsRemaining}/${HINTS_PER_SCENE} — cooldown ${Math.ceil(remainingMs/1000)}s`;
+  } else {
+    hintBtn.disabled = state.hintsRemaining <= 0;
+    hintLabel.textContent = `Hints: ${state.hintsRemaining}/${HINTS_PER_SCENE}`;
+  }
+}
+
+function resetGame() {
+  state.found.clear();
+  state.hintsRemaining = HINTS_PER_SCENE;
+  state.hintsUsed = 0;
+  state.cooldownEndsAt = 0;
+  completion.classList.remove("show");
+  buildList();
+  placeObjects();
+  updateHintLabel();
+}
+
+// Scaling: keep 1920x1080 stage but fit to window
+function fitStage() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const scale = Math.min(w / 1920, h / 1080);
+  stage.style.transform = `scale(${scale})`;
+}
+
+hintBtn.addEventListener("click", requestHint);
+document.getElementById("replay-btn").addEventListener("click", resetGame);
+window.addEventListener("resize", fitStage);
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    const help = document.getElementById("help");
+    if (help) help.style.display = "none";
+  }
+});
+
+resetGame();
+fitStage();
+setInterval(updateHintLabel, 250);
+</script>
+</body>
+</html>
