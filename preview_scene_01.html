@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Cozy HOG — Scene 01 Preview</title>
+<title>Cozy HOG — Scene 01 ALIVE Preview</title>
 <style>
   :root {
     --cream: #fcf4e6;
@@ -17,26 +17,194 @@
     font-family: -apple-system, "Avenir Next", "Segoe UI", sans-serif;
     overflow: hidden; height: 100%;
   }
-  /* Stage scales to fit window while keeping 16:9 */
-  #stage-wrap {
-    position: fixed; inset: 0; display: grid; place-items: center;
-  }
+  #stage-wrap { position: fixed; inset: 0; display: grid; place-items: center; }
   #stage {
-    position: relative;
-    width: 1920px; height: 1080px;
-    background-size: cover; background-position: center;
-    transform-origin: center;
-    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    position: relative; width: 1920px; height: 1080px;
+    transform-origin: center; box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    overflow: hidden; background: #2a1f17;
   }
-  .obj {
+  /* ============ LAYER 1: ambient ============ */
+  /* Background — cursor parallax via transform */
+  #bg {
+    position: absolute; inset: -30px;
+    background: url('assets/_style_exploration/bg_throwaway_01.png') center/cover no-repeat;
+    will-change: transform;
+    transition: transform 0.25s cubic-bezier(.2,.7,.3,1);
+  }
+  /* Sun shaft pulsing in from upper-left window */
+  #sun-shaft {
+    position: absolute; left: -100px; top: -200px;
+    width: 900px; height: 1400px;
+    background: linear-gradient(165deg, rgba(255, 230, 170, 0.35) 0%, rgba(255, 220, 150, 0.18) 30%, transparent 60%);
+    transform: rotate(-12deg); transform-origin: top left;
+    animation: sunpulse 7s ease-in-out infinite;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  @keyframes sunpulse {
+    0%, 100% { opacity: 0.7; }
+    50%      { opacity: 1.0; }
+  }
+  /* Drifting dust motes in the sun area */
+  .mote {
+    position: absolute; width: 6px; height: 6px;
+    background: radial-gradient(circle, rgba(255,240,200,0.9), transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    0%   { transform: translate(0, 0)   scale(0.6); opacity: 0; }
+    10%  { opacity: 1; }
+    100% { transform: translate(180px, 360px) scale(1.1); opacity: 0; }
+  }
+  /* Candle / lantern flicker hotspot — over the right-side shelving */
+  #candle-glow {
+    position: absolute; left: 1620px; top: 320px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(255, 200, 120, 0.55), transparent 60%);
+    transform: translate(-50%, -50%);
+    pointer-events: none; mix-blend-mode: screen;
+    animation: flicker 0.18s steps(2, end) infinite;
+  }
+  @keyframes flicker {
+    0%, 100% { opacity: 0.9; }
+    50%      { opacity: 0.55; }
+  }
+
+  /* ============ LAYER 2: interactive delight props (invisible hotspots over bg) ============ */
+  .prop {
     position: absolute;
-    width: 128px; height: 128px;
     transform: translate(-50%, -50%);
     cursor: pointer;
-    transition: transform 0.15s ease;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+    /* invisible by default; show subtle hover ring */
+    border: 2px dashed transparent;
+    border-radius: 12px;
+    transition: border-color 0.2s;
   }
-  .obj:hover { transform: translate(-50%, -50%) scale(1.06); }
+  body.debug-props .prop { border-color: rgba(255, 220, 100, 0.6); }
+  .prop:hover { border-color: rgba(255, 230, 130, 0.85); }
+  /* Each prop is a hit-box; the visual reaction overlays via JS */
+  .prop-effect {
+    position: absolute; transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  /* Steam puff above kettle/mixer */
+  .steam {
+    width: 100px; height: 150px;
+    background: radial-gradient(ellipse at 50% 80%, rgba(255,255,255,0.7), transparent 70%);
+    animation: steamup 1.4s ease-out forwards;
+    filter: blur(6px);
+  }
+  @keyframes steamup {
+    0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.6); }
+    30%  { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(-50%, -160%) scale(1.4); }
+  }
+  /* Wobble for clickable visible bg elements */
+  .wobble-overlay {
+    width: 120px; height: 120px;
+    animation: wobble 0.6s ease;
+  }
+  @keyframes wobble {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    20% { transform: translate(-50%, -50%) rotate(-6deg); }
+    50% { transform: translate(-50%, -50%) rotate(5deg); }
+    80% { transform: translate(-50%, -50%) rotate(-2deg); }
+    100% { transform: translate(-50%, -50%) rotate(0deg); }
+  }
+  /* Curtain sway: a peach-tinted overlay near window */
+  #curtain-overlay {
+    position: absolute; left: 80px; top: 100px;
+    width: 240px; height: 320px;
+    background: linear-gradient(180deg, rgba(250, 220, 200, 0.35), rgba(250, 220, 200, 0.05));
+    transform-origin: top center;
+    pointer-events: none;
+    transition: transform 1.5s cubic-bezier(.4,.0,.2,1);
+  }
+  #curtain-overlay.swept { transform: skewX(-20deg) translateX(-40px); }
+
+  /* Light flare for lantern */
+  .flare {
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(255, 220, 150, 0.9), transparent 60%);
+    animation: flare 1.2s ease-out forwards;
+    mix-blend-mode: screen;
+  }
+  @keyframes flare {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+  }
+  /* Pop-sparkle */
+  .pop-spark {
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(255,240,180,0.95), transparent 70%);
+    animation: popspark 0.7s ease-out forwards;
+  }
+  @keyframes popspark {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    40% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2.0); }
+  }
+  /* Floating reaction caption */
+  .caption {
+    position: absolute; transform: translate(-50%, -50%);
+    color: white; font-size: 18px; font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.85);
+    pointer-events: none;
+    animation: floatup 1.4s ease-out forwards;
+    white-space: nowrap;
+  }
+  @keyframes floatup {
+    0% { opacity: 0; transform: translate(-50%, 20px); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -80px); }
+  }
+
+  /* ============ LAYER 3: reveal interaction (wardrobe doors over green cabinet at left) ============ */
+  #wardrobe {
+    position: absolute; left: 130px; top: 240px;
+    width: 210px; height: 240px;
+    transform: translate(-50%, 0);
+    cursor: pointer;
+    border: 2px dashed transparent;
+    border-radius: 6px;
+    transition: border-color 0.2s;
+  }
+  #wardrobe:hover { border-color: rgba(255, 230, 130, 0.85); }
+  body.debug-props #wardrobe { border-color: rgba(255, 220, 100, 0.6); }
+  #wardrobe.opened { cursor: default; }
+  .wardrobe-door {
+    position: absolute; top: 0; width: 50%; height: 100%;
+    background: linear-gradient(180deg, rgba(120, 140, 110, 0.95), rgba(80, 100, 75, 0.95));
+    border: 3px solid rgba(60, 80, 55, 0.95);
+    transition: transform 0.9s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+  }
+  .wardrobe-door.left  { left: 0;  transform-origin: left center; }
+  .wardrobe-door.right { right: 0; transform-origin: right center; }
+  #wardrobe.opened .wardrobe-door.left  { transform: perspective(600px) rotateY(-110deg); }
+  #wardrobe.opened .wardrobe-door.right { transform: perspective(600px) rotateY( 110deg); }
+  .wardrobe-handle {
+    position: absolute; top: 50%; width: 6px; height: 18px;
+    background: #f0c878; border-radius: 3px;
+    transform: translateY(-50%);
+  }
+  .wardrobe-door.left  .wardrobe-handle { right: 8px; }
+  .wardrobe-door.right .wardrobe-handle { left: 8px; }
+
+  /* ============ Hidden objects (clickable sprites) ============ */
+  .obj {
+    position: absolute; width: 128px; height: 128px;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.5s ease;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+  }
+  .obj.hidden-in-wardrobe { opacity: 0; pointer-events: none; transition: opacity 0.6s ease 0.4s; }
+  .obj.hidden-in-wardrobe.revealed { opacity: 1; pointer-events: auto; }
+  .obj:hover:not(.found) { transform: translate(-50%, -50%) scale(1.08); }
   .obj.found {
     pointer-events: none;
     animation: vanish 0.5s ease forwards;
@@ -44,50 +212,26 @@
   @keyframes vanish {
     to { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
   }
-  /* Sparkle on find */
-  .sparkle {
-    position: absolute; width: 200px; height: 200px;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    background: radial-gradient(circle, rgba(255,240,180,0.9) 0%, rgba(255,200,120,0.4) 30%, transparent 70%);
-    animation: pop 0.7s ease-out forwards;
-  }
-  @keyframes pop {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-    30%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(2.0); }
-  }
-  /* Hint pulse */
-  .pulse {
-    position: absolute; width: 140px; height: 140px;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    border-radius: 50%;
-    background: rgba(255, 215, 130, 0.55);
-    animation: pulse 2s ease-out forwards;
-  }
-  @keyframes pulse {
-    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
-    20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
-  }
 
-  /* HUD */
+  /* ============ HUD ============ */
   #hud-panel {
     position: absolute; left: 16px; top: 16px;
     width: 264px; min-height: 380px;
     background: rgba(252, 244, 230, 0.92);
     border: 2px solid #8c6e5a; border-radius: 14px;
-    padding: 14px 18px;
+    padding: 14px 18px; z-index: 50;
   }
-  #hud-panel h2 { margin: 0 0 10px; font-size: 26px; font-weight: 600; letter-spacing: 0.5px; }
+  #hud-panel h2 { margin: 0 0 10px; font-size: 26px; font-weight: 600; }
   #obj-list { margin: 0; padding: 0; list-style: none; }
   #obj-list li { padding: 4px 0; font-size: 22px; }
-  #obj-list li.found { color: #998; text-decoration: line-through; }
+  #obj-list li.found { color: #a09b95; text-decoration: line-through; }
   #obj-list li::before { content: "• "; }
+  #obj-list li.in-wardrobe { font-style: italic; color: #6c5a4a; }
+  #obj-list li.in-wardrobe::after { content: " (hidden)"; font-size: 14px; opacity: 0.7; }
+  #obj-list li.in-wardrobe.revealed::after { content: ""; }
 
   #hint-bar {
-    position: absolute; left: 16px; bottom: 24px;
+    position: absolute; left: 16px; bottom: 24px; z-index: 50;
     display: flex; gap: 16px; align-items: center;
   }
   #hint-btn {
@@ -96,11 +240,18 @@
     cursor: pointer; font-family: inherit;
   }
   #hint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  #hint-label { font-size: 20px; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+  #hint-label { font-size: 18px; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
+
+  #prop-counter {
+    position: absolute; right: 16px; bottom: 24px; z-index: 50;
+    font-size: 18px; color: var(--cream);
+    text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.45); padding: 8px 14px; border-radius: 8px;
+  }
 
   /* Completion modal */
   #completion {
-    position: absolute; inset: 0;
+    position: absolute; inset: 0; z-index: 100;
     display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,0.45);
   }
@@ -119,25 +270,43 @@
 
   /* Help overlay */
   #help {
-    position: fixed; right: 16px; top: 16px; z-index: 100;
-    background: rgba(0,0,0,0.6); color: white; padding: 10px 14px;
-    border-radius: 8px; font-size: 14px; max-width: 280px;
-    line-height: 1.4;
+    position: fixed; right: 16px; top: 16px; z-index: 200;
+    background: rgba(0,0,0,0.7); color: white; padding: 12px 16px;
+    border-radius: 8px; font-size: 13px; max-width: 320px; line-height: 1.45;
+  }
+  #help b { font-size: 14px; }
+  #help kbd {
+    background: #333; padding: 1px 6px; border-radius: 4px; font-size: 11px;
   }
 </style>
 </head>
 <body>
 
 <div id="help">
-  <b>Cozy HOG — preview</b><br>
-  Click the 8 hidden objects in the bakery.<br>
-  Try "Hint" if you get stuck (3 per scene, 60s cooldown).<br>
-  Esc to dismiss this note.
+  <b>Cozy HOG — ALIVE preview</b><br>
+  • Find 8 objects (some are hidden inside the green wardrobe — click it)<br>
+  • Click stuff: mixer, awning, curtain, flower pot, lantern shelf — they react<br>
+  • Move your mouse to feel the cursor parallax<br>
+  • <kbd>D</kbd> show hit-boxes &nbsp; <kbd>Esc</kbd> hide this
 </div>
 
 <div id="stage-wrap">
-  <div id="stage" style="background-image:url('assets/_style_exploration/bg_throwaway_01.png')">
-    <!-- objects + HUD injected by JS -->
+  <div id="stage">
+    <div id="bg"></div>
+
+    <!-- Layer 1: ambient -->
+    <div id="sun-shaft"></div>
+    <div id="motes-container"></div>
+    <div id="candle-glow"></div>
+    <div id="curtain-overlay"></div>
+
+    <!-- Layer 3: reveal -->
+    <div id="wardrobe">
+      <div class="wardrobe-door left"><div class="wardrobe-handle"></div></div>
+      <div class="wardrobe-door right"><div class="wardrobe-handle"></div></div>
+    </div>
+
+    <!-- HUD -->
     <div id="hud-panel">
       <h2>Find:</h2>
       <ul id="obj-list"></ul>
@@ -146,6 +315,9 @@
       <button id="hint-btn">Hint</button>
       <span id="hint-label">Hints: 3/3</span>
     </div>
+    <div id="prop-counter">Delights touched: <span id="prop-count">0</span> / <span id="prop-total">0</span></div>
+
+    <!-- Completion -->
     <div id="completion">
       <div id="completion-card">
         <h1>Scene complete!</h1>
@@ -157,19 +329,30 @@
 </div>
 
 <script>
+// ============ DATA ============
+// 2 items are hidden INSIDE the wardrobe (Layer 3 reveal). Rest are placed in the open scene.
 const SCENE = {
-  scene_id: "scene_01",
   hidden_objects: [
-    { id: "teacup",     display_name: "Teacup",       sprite: "assets/objects/scene_01/obj_teacup.png",     position: [320, 280] },
-    { id: "key",        display_name: "Brass Key",    sprite: "assets/objects/scene_01/obj_key.png",        position: [560, 420] },
-    { id: "yarn",       display_name: "Ball of Yarn", sprite: "assets/objects/scene_01/obj_yarn.png",       position: [820, 700] },
-    { id: "candle",     display_name: "Candle",       sprite: "assets/objects/scene_01/obj_candle.png",     position: [1080, 320] },
-    { id: "letter",     display_name: "Letter",       sprite: "assets/objects/scene_01/obj_letter.png",     position: [1340, 540] },
-    { id: "mushroom",   display_name: "Mushroom",     sprite: "assets/objects/scene_01/obj_mushroom.png",   position: [1620, 760] },
-    { id: "spectacles", display_name: "Spectacles",   sprite: "assets/objects/scene_01/obj_spectacles.png", position: [480, 820] },
-    { id: "sock",       display_name: "Tiny Sock",    sprite: "assets/objects/scene_01/obj_sock.png",       position: [1180, 880] }
+    { id: "teacup",     display_name: "Teacup",       sprite: "assets/objects/scene_01/obj_teacup.png",     position: [180, 380], in_wardrobe: true  },
+    { id: "key",        display_name: "Brass Key",    sprite: "assets/objects/scene_01/obj_key.png",        position: [110, 410], in_wardrobe: true  },
+    { id: "yarn",       display_name: "Ball of Yarn", sprite: "assets/objects/scene_01/obj_yarn.png",       position: [820, 700], in_wardrobe: false },
+    { id: "candle",     display_name: "Candle",       sprite: "assets/objects/scene_01/obj_candle.png",     position: [1080, 320], in_wardrobe: false },
+    { id: "letter",     display_name: "Letter",       sprite: "assets/objects/scene_01/obj_letter.png",     position: [1340, 540], in_wardrobe: false },
+    { id: "mushroom",   display_name: "Mushroom",     sprite: "assets/objects/scene_01/obj_mushroom.png",   position: [1620, 760], in_wardrobe: false },
+    { id: "spectacles", display_name: "Spectacles",   sprite: "assets/objects/scene_01/obj_spectacles.png", position: [620, 820], in_wardrobe: false },
+    { id: "sock",       display_name: "Tiny Sock",    sprite: "assets/objects/scene_01/obj_sock.png",       position: [1180, 880], in_wardrobe: false }
   ]
 };
+
+// Layer 2 — interactive delight props (positions chosen to overlay visible bg elements)
+const PROPS = [
+  { id: "mixer",   pos: [1230, 230], size: [180, 220], reaction: "shake-and-steam",  caption: "*whirr*"     },
+  { id: "awning",  pos: [1620, 110], size: [380, 180], reaction: "wobble",            caption: "*flutter*"   },
+  { id: "curtain", pos: [200, 280],  size: [240, 360], reaction: "curtain-sway",      caption: "*swish*"     },
+  { id: "flower",  pos: [1740, 980], size: [240, 200], reaction: "sparkle-and-pop",   caption: "*rustle*"    },
+  { id: "lantern", pos: [1620, 320], size: [200, 200], reaction: "flare",             caption: "*flare*"     },
+  { id: "plant",   pos: [120, 130],  size: [180, 180], reaction: "wobble-leaves",     caption: "*sway*"      },
+];
 
 const HINTS_PER_SCENE = 3;
 const HINT_COOLDOWN_MS = 60_000;
@@ -179,19 +362,29 @@ const state = {
   hintsRemaining: HINTS_PER_SCENE,
   hintsUsed: 0,
   cooldownEndsAt: 0,
+  wardrobeOpen: false,
+  propsTouched: new Set(),
 };
 
 const stage = document.getElementById("stage");
+const bg = document.getElementById("bg");
 const list = document.getElementById("obj-list");
 const hintBtn = document.getElementById("hint-btn");
 const hintLabel = document.getElementById("hint-label");
 const completion = document.getElementById("completion");
 const completeStats = document.getElementById("complete-stats");
+const wardrobeEl = document.getElementById("wardrobe");
+const curtainOverlay = document.getElementById("curtain-overlay");
+const propCountEl = document.getElementById("prop-count");
+document.getElementById("prop-total").textContent = PROPS.length;
 
-// Web Audio chime — synthesized so we don't need a wav file
+// ============ AUDIO (synthesized — no external assets needed) ============
 let audioCtx;
-function chime() {
+function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function chime() {
+  ensureAudio();
   const t = audioCtx.currentTime;
   [880, 1320].forEach((freq, i) => {
     const o = audioCtx.createOscillator();
@@ -204,23 +397,171 @@ function chime() {
     o.start(t + i * 0.05); o.stop(t + 0.7);
   });
 }
+function thud(freq = 240, dur = 0.25) {
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = "triangle"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t); o.stop(t + dur);
+}
+function whoosh() {
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const bufferSize = audioCtx.sampleRate * 0.45;
+  const buf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  const src = audioCtx.createBufferSource(); src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter(); filter.type = "bandpass"; filter.frequency.value = 1200;
+  const g = audioCtx.createGain(); g.gain.value = 0.12;
+  src.connect(filter).connect(g).connect(audioCtx.destination);
+  src.start(t);
+}
 
+// ============ LAYER 1: motes ============
+function spawnMotes() {
+  const container = document.getElementById("motes-container");
+  for (let i = 0; i < 18; i++) {
+    const m = document.createElement("div");
+    m.className = "mote";
+    m.style.left = (Math.random() * 700) + "px";
+    m.style.top  = (Math.random() * 400) + "px";
+    m.style.animationDuration = (8 + Math.random() * 8) + "s";
+    m.style.animationDelay = (-Math.random() * 12) + "s";
+    container.appendChild(m);
+  }
+}
+
+// Cursor parallax: shift bg up to ±15px based on cursor offset from center
+function setupParallax() {
+  stage.addEventListener("mousemove", (e) => {
+    const rect = stage.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width  - 0.5; // -0.5 .. 0.5
+    const ny = (e.clientY - rect.top)  / rect.height - 0.5;
+    bg.style.transform = `translate(${-nx * 30}px, ${-ny * 20}px) scale(1.04)`;
+  });
+}
+
+// ============ LAYER 2: interactive props ============
+function setupProps() {
+  PROPS.forEach(p => {
+    const el = document.createElement("div");
+    el.className = "prop";
+    el.dataset.id = p.id;
+    el.style.left   = p.pos[0] + "px";
+    el.style.top    = p.pos[1] + "px";
+    el.style.width  = p.size[0] + "px";
+    el.style.height = p.size[1] + "px";
+    el.addEventListener("click", () => triggerProp(p));
+    stage.appendChild(el);
+  });
+}
+
+function triggerProp(p) {
+  state.propsTouched.add(p.id);
+  propCountEl.textContent = state.propsTouched.size;
+  spawnCaption(p.pos[0], p.pos[1] - p.size[1]/2 - 20, p.caption);
+  switch (p.reaction) {
+    case "shake-and-steam":
+      shakeBgRegion(p.pos, p.size);
+      spawnEffect("steam", p.pos[0], p.pos[1] - p.size[1]/2);
+      thud(180, 0.2);
+      break;
+    case "wobble":
+    case "wobble-leaves":
+      spawnEffect("wobble-overlay", p.pos[0], p.pos[1]);
+      whoosh();
+      break;
+    case "curtain-sway":
+      curtainOverlay.classList.add("swept");
+      whoosh();
+      setTimeout(() => curtainOverlay.classList.remove("swept"), 1500);
+      break;
+    case "sparkle-and-pop":
+      spawnEffect("pop-spark", p.pos[0], p.pos[1]);
+      chime();
+      break;
+    case "flare":
+      spawnEffect("flare", p.pos[0], p.pos[1]);
+      thud(660, 0.15);
+      break;
+  }
+}
+
+function spawnEffect(className, x, y) {
+  const e = document.createElement("div");
+  e.className = "prop-effect " + className;
+  e.style.left = x + "px";
+  e.style.top  = y + "px";
+  stage.appendChild(e);
+  setTimeout(() => e.remove(), 1600);
+}
+function spawnCaption(x, y, text) {
+  const c = document.createElement("div");
+  c.className = "caption";
+  c.style.left = x + "px";
+  c.style.top  = y + "px";
+  c.textContent = text;
+  stage.appendChild(c);
+  setTimeout(() => c.remove(), 1400);
+}
+
+// Localized bg shake when mixer is clicked
+function shakeBgRegion(pos, size) {
+  bg.animate(
+    [
+      { transform: bg.style.transform || "translate(0,0) scale(1.04)" },
+      { transform: "translate(3px, 2px) scale(1.04)" },
+      { transform: "translate(-3px, -2px) scale(1.04)" },
+      { transform: "translate(2px, -2px) scale(1.04)" },
+      { transform: bg.style.transform || "translate(0,0) scale(1.04)" },
+    ],
+    { duration: 350, iterations: 1, easing: "linear" }
+  );
+}
+
+// ============ LAYER 3: wardrobe reveal ============
+function setupWardrobe() {
+  wardrobeEl.addEventListener("click", () => {
+    if (state.wardrobeOpen) return;
+    state.wardrobeOpen = true;
+    wardrobeEl.classList.add("opened");
+    thud(140, 0.45);
+    setTimeout(() => {
+      // Reveal contained items
+      SCENE.hidden_objects.filter(o => o.in_wardrobe).forEach(o => {
+        const img = stage.querySelector(`.obj[data-id="${o.id}"]`);
+        if (img) img.classList.add("revealed");
+        const row = document.getElementById("row_" + o.id);
+        if (row) row.classList.add("revealed");
+      });
+    }, 600);
+  });
+}
+
+// ============ HIDDEN OBJECTS + HUD ============
 function buildList() {
   list.innerHTML = "";
   SCENE.hidden_objects.forEach(o => {
     const li = document.createElement("li");
     li.id = "row_" + o.id;
     li.textContent = o.display_name;
+    if (o.in_wardrobe) li.classList.add("in-wardrobe");
     list.appendChild(li);
   });
 }
 
 function placeObjects() {
-  // remove existing object elements
   stage.querySelectorAll(".obj").forEach(e => e.remove());
   SCENE.hidden_objects.forEach(o => {
     const img = document.createElement("img");
     img.className = "obj";
+    if (o.in_wardrobe) img.classList.add("hidden-in-wardrobe");
     img.src = o.sprite;
     img.alt = o.display_name;
     img.dataset.id = o.id;
@@ -233,33 +574,24 @@ function placeObjects() {
 
 function markFound(o) {
   if (state.found.has(o.id)) return;
+  if (o.in_wardrobe && !state.wardrobeOpen) return;
   state.found.add(o.id);
-  // sparkle
-  const sp = document.createElement("div");
-  sp.className = "sparkle";
-  sp.style.left = o.position[0] + "px";
-  sp.style.top  = o.position[1] + "px";
-  stage.appendChild(sp);
-  setTimeout(() => sp.remove(), 800);
-  // strikethrough
+  spawnEffect("pop-spark", o.position[0], o.position[1]);
   const row = document.getElementById("row_" + o.id);
   if (row) row.classList.add("found");
-  // fade sprite
   const img = stage.querySelector(`.obj[data-id="${o.id}"]`);
-  if (img) {
-    img.classList.add("found");
-    setTimeout(() => img.remove(), 600);
-  }
+  if (img) { img.classList.add("found"); setTimeout(() => img.remove(), 600); }
   chime();
   if (state.found.size >= SCENE.hidden_objects.length) {
-    setTimeout(showCompletion, 700);
+    setTimeout(showCompletion, 800);
   }
 }
 
 function showCompletion() {
   completeStats.innerHTML =
     `Found ${state.found.size} / ${SCENE.hidden_objects.length}<br>` +
-    `Hints used: ${state.hintsUsed}`;
+    `Hints used: ${state.hintsUsed}<br>` +
+    `Delight props touched: ${state.propsTouched.size} / ${PROPS.length}`;
   completion.classList.add("show");
 }
 
@@ -267,20 +599,42 @@ function requestHint() {
   const now = performance.now();
   if (now < state.cooldownEndsAt) return;
   if (state.hintsRemaining <= 0) return;
-  const unfound = SCENE.hidden_objects.filter(o => !state.found.has(o.id));
+  let unfound = SCENE.hidden_objects.filter(o => !state.found.has(o.id));
+  // Don't hint items inside a closed wardrobe — hint the wardrobe instead
+  if (!state.wardrobeOpen) {
+    const wardrobeItems = unfound.filter(o => o.in_wardrobe);
+    if (wardrobeItems.length > 0) {
+      pulseAt(wardrobeEl.offsetLeft + wardrobeEl.offsetWidth/2, wardrobeEl.offsetTop + wardrobeEl.offsetHeight/2);
+      state.hintsRemaining -= 1; state.hintsUsed += 1;
+      state.cooldownEndsAt = now + HINT_COOLDOWN_MS;
+      updateHintLabel();
+      return;
+    }
+  }
+  unfound = unfound.filter(o => !o.in_wardrobe || state.wardrobeOpen);
   if (unfound.length === 0) return;
   const target = unfound[Math.floor(Math.random() * unfound.length)];
   state.hintsRemaining -= 1;
   state.hintsUsed += 1;
   state.cooldownEndsAt = now + HINT_COOLDOWN_MS;
-  // pulse
+  pulseAt(target.position[0], target.position[1]);
+  updateHintLabel();
+}
+
+function pulseAt(x, y) {
   const p = document.createElement("div");
-  p.className = "pulse";
-  p.style.left = target.position[0] + "px";
-  p.style.top  = target.position[1] + "px";
+  p.className = "prop-effect";
+  p.style.left = x + "px"; p.style.top = y + "px";
+  p.style.width = "140px"; p.style.height = "140px";
+  p.style.borderRadius = "50%";
+  p.style.background = "rgba(255, 215, 130, 0.55)";
+  p.animate(
+    [{ opacity: 0, transform: "translate(-50%,-50%) scale(0.4)" },
+     { opacity: 1, transform: "translate(-50%,-50%) scale(1.0)" , offset: 0.2},
+     { opacity: 0, transform: "translate(-50%,-50%) scale(1.8)" }],
+    { duration: 2000, easing: "ease-out" });
   stage.appendChild(p);
   setTimeout(() => p.remove(), 2000);
-  updateHintLabel();
 }
 
 function updateHintLabel() {
@@ -300,13 +654,16 @@ function resetGame() {
   state.hintsRemaining = HINTS_PER_SCENE;
   state.hintsUsed = 0;
   state.cooldownEndsAt = 0;
+  state.wardrobeOpen = false;
+  state.propsTouched.clear();
+  propCountEl.textContent = "0";
+  wardrobeEl.classList.remove("opened");
   completion.classList.remove("show");
   buildList();
   placeObjects();
   updateHintLabel();
 }
 
-// Scaling: keep 1920x1080 stage but fit to window
 function fitStage() {
   const w = window.innerWidth, h = window.innerHeight;
   const scale = Math.min(w / 1920, h / 1080);
@@ -321,8 +678,16 @@ window.addEventListener("keydown", e => {
     const help = document.getElementById("help");
     if (help) help.style.display = "none";
   }
+  if (e.key === "d" || e.key === "D") {
+    document.body.classList.toggle("debug-props");
+  }
 });
 
+// Init
+spawnMotes();
+setupParallax();
+setupProps();
+setupWardrobe();
 resetGame();
 fitStage();
 setInterval(updateHintLabel, 250);
