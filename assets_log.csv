@@ -1,0 +1,5 @@
+filename,prompt,seed,reference,source,license,notes
+assets/backgrounds/scene_01/placeholder.png,,,,internal,placeholder,Solid pastel rect for prototype
+assets/objects/scene_01/obj_teacup.png,,,,placeholder,CC0,Replace in Phase 2a
+assets/audio/sfx/chime.wav,,,,freesound.org TBD,CC0,Found-item chime
+assets/audio/music/ambient_loop.ogg,,,,freesound.org TBD,CC0,Ambient bakery loop

@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3 uid="uid://b3template0001"]
+
+[ext_resource type="Script" path="res://scripts/gameplay.gd" id="1_tpl"]
+
+; Phase 2 alive-layer placeholder: replace Background Sprite2D with a
+; ParallaxBackground containing 5 ParallaxLayer children (sky/far/mid/near/overlay).
+; Add wind shader on overlay, dust mote GPUParticles2D, flicker shader on candle lights,
+; populate InteractiveProps and RevealInteractions per Section 5 of the master plan.
+
+[node name="LevelTemplate" type="Node2D"]
+script = ExtResource("1_tpl")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(960, 540)
+
+[node name="HiddenObjects" type="Node2D" parent="."]
+
+[node name="InteractiveProps" type="Node2D" parent="."]
+
+[node name="RevealInteractions" type="Node2D" parent="."]
+
+[node name="Particles" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(960, 540)
+
+[node name="Chime" type="AudioStreamPlayer" parent="."]
+
+[node name="HUD" type="CanvasLayer" parent="."]

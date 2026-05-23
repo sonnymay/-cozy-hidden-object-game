@@ -1,0 +1,14 @@
+{
+  "scene_id": "scene_01",
+  "background": "res://assets/backgrounds/scene_01/placeholder.png",
+  "hidden_objects": [
+    { "id": "teacup",     "display_name": "Teacup",       "sprite": "res://assets/objects/scene_01/obj_teacup.png",     "position": [320, 280],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "key",        "display_name": "Brass Key",    "sprite": "res://assets/objects/scene_01/obj_key.png",        "position": [560, 420],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "yarn",       "display_name": "Ball of Yarn", "sprite": "res://assets/objects/scene_01/obj_yarn.png",       "position": [820, 700],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "candle",     "display_name": "Candle",       "sprite": "res://assets/objects/scene_01/obj_candle.png",     "position": [1080, 320], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "letter",     "display_name": "Letter",       "sprite": "res://assets/objects/scene_01/obj_letter.png",     "position": [1340, 540], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "mushroom",   "display_name": "Mushroom",     "sprite": "res://assets/objects/scene_01/obj_mushroom.png",   "position": [1620, 760], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "spectacles", "display_name": "Spectacles",   "sprite": "res://assets/objects/scene_01/obj_spectacles.png", "position": [480, 820],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
+    { "id": "sock",       "display_name": "Tiny Sock",    "sprite": "res://assets/objects/scene_01/obj_sock.png",       "position": [1180, 880], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] }
+  ]
+}

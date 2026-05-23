@@ -1,0 +1,31 @@
+; Engine configuration file.
+; Open with Godot 4.3+ — it will regenerate .godot/ and import metadata on first launch.
+
+config_version=5
+
+[application]
+
+config/name="Cozy HOG Prototype"
+config/description="Phase 1 prototype: prove the core hidden-object loop with placeholder art."
+run/main_scene="res://scenes/main_menu.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+GameManager="*res://scripts/game_manager.gd"
+SaveSystem="*res://scripts/save_system.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
