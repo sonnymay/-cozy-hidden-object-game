@@ -37,7 +37,7 @@ What's stubbed / falls back gracefully:
 - **Save format:** `ConfigFile` at `user://save.cfg` with `.bak` rotation
 - **Scene data:** JSON in `data/`, hot-tunable without recompile
 - **Autoloads:** `GameManager` (loop state), `SaveSystem` (persistence)
-- **No AI art until Phase 1 validates** — placeholder rectangles only
+- **Locked style reference:** `assets/_style_exploration/bg_throwaway_01.png` (cozy bakery at golden hour). All future Phase 2a+ generations must use this image as `--sref` (Midjourney) or IP-Adapter input (SDXL/ComfyUI).
 
 ## Next action (resume here)
 
