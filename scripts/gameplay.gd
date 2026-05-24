@@ -21,11 +21,27 @@ extends Node2D
 const ClickableScript := preload("res://scripts/object_clickable.gd")
 const SceneLoader := preload("res://scripts/scene_loader.gd")
 const HintSystemScript := preload("res://scripts/hint_system.gd")
+const AmbientChoreographerScript := preload("res://scripts/ambient_choreographer.gd")
+
+# Per-prop ambient behaviours — what each prop does when no one is clicking
+const PROP_AMBIENTS := {
+	"mixer":         "wobble",      # rare tiny rumble
+	"awning":        "sway",        # continuous fabric ripple
+	"curtain":       "sway",        # continuous breathing
+	"flower_pot":    "breathe",     # gentle scale pulse
+	"lantern":       "flame_pulse", # rapid subtle shimmer
+	"plant":         "sway",        # continuous leaf sway
+	"kettle":        "steam_puff",  # occasional steam burst
+	"bell":          "wobble",      # rare tiny ring
+	"drawer":        "wobble",      # rare settle
+	"picture_frame": "wobble",      # rare nudge
+}
 
 const HOVER_BRIGHTEN := 0.18 # value bumped on hover
 const HOVER_SCALE   := 1.06  # sprite scale on hover
 
 var _hint_system: Node
+var _choreographer: Node
 var _row_by_id: Dictionary = {}
 var _props: Array = []
 var _reveals: Array = []
@@ -64,6 +80,30 @@ func _ready() -> void:
 		p.area.mouse_entered.connect(_on_prop_hover.bind(p, true))
 		p.area.mouse_exited.connect(_on_prop_hover.bind(p, false))
 
+	# Ambient choreographer — drives autonomous motion on every prop + mascot
+	_choreographer = AmbientChoreographerScript.new()
+	add_child(_choreographer)
+	_choreographer.request_particles.connect(_spawn_particles)
+	for p in _props:
+		if p.sprite == null: continue
+		var kind: String = PROP_AMBIENTS.get(p.id, "")
+		if kind == "": continue
+		var opts := {
+			"is_busy_callable": Callable(self, "_is_prop_busy").bind(p),
+		}
+		if kind == "steam_puff":
+			opts["particle_offset"] = Vector2(0, -80)
+			opts["particle_kind"] = "steam"
+		_choreographer.register(p.sprite, kind, opts)
+	# Mascot bobs continuously
+	var mascot := get_node_or_null("Mascot")
+	if mascot != null:
+		_choreographer.register(mascot, "bob")
+	# Distant rare shimmer on overlay layer (window light glinting)
+	var overlay_sprite := get_node_or_null("Parallax/LayerOverlay/Sprite")
+	if overlay_sprite != null:
+		_choreographer.register(overlay_sprite, "shimmer")
+
 	var areas: Array = SceneLoader.populate(hidden_objects, data, ClickableScript)
 	GameManager.start_scene(data.get("scene_id", "scene_01"), areas.size())
 	_build_object_list(areas)
@@ -77,6 +117,9 @@ func _ready() -> void:
 	completion_panel.visible = false
 	prop_counter.text = "Delights: 0/%d" % _props.size()
 	_update_hint_label()
+
+func _is_prop_busy(prop: Dictionary) -> bool:
+	return prop.get("hover_busy", false)
 
 func _build_object_list(areas: Array) -> void:
 	for child in object_list.get_children():

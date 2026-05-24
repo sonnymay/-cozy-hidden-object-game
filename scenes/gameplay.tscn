@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://b2gameplay0001"]
+[gd_scene load_steps=19 format=3 uid="uid://b2gameplay0001"]
 
 [ext_resource type="Script" path="res://scripts/gameplay.gd" id="1_gp"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_01_sky.png" id="2_bg1"]
@@ -10,6 +10,11 @@
 [ext_resource type="Texture2D" path="res://assets/characters/mc_idle.png" id="7_mc"]
 [ext_resource type="Texture2D" path="res://assets/fx/dust_particle.png" id="8_dust"]
 [ext_resource type="Shader" path="res://assets/shaders/wind.gdshader" id="9_wind"]
+[ext_resource type="Script" path="res://scripts/critter.gd" id="10_critter"]
+[ext_resource type="Texture2D" path="res://assets/characters/critter_bird.png" id="11_bird"]
+[ext_resource type="Texture2D" path="res://assets/characters/critter_cat.png" id="12_cat"]
+[ext_resource type="Texture2D" path="res://assets/characters/critter_mouse.png" id="13_mouse"]
+[ext_resource type="Texture2D" path="res://assets/characters/critter_butterfly.png" id="14_butterfly"]
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_sparkle"]
 emission_shape = 1
@@ -136,6 +141,43 @@ position = Vector2(960, 540)
 position = Vector2(1780, 980)
 scale = Vector2(0.55, 0.55)
 texture = ExtResource("7_mc")
+
+[node name="Critters" type="Node2D" parent="."]
+
+[node name="Bird" type="Sprite2D" parent="Critters"]
+position = Vector2(380, 280)
+texture = ExtResource("11_bird")
+script = ExtResource("10_critter")
+behaviour = "hop"
+idle_min = 4.0
+idle_max = 8.0
+hop_height = 30.0
+
+[node name="Cat" type="Sprite2D" parent="Critters"]
+position = Vector2(960, 940)
+texture = ExtResource("12_cat")
+script = ExtResource("10_critter")
+behaviour = "stretch"
+idle_min = 8.0
+idle_max = 14.0
+stretch_amount = 0.18
+
+[node name="Mouse" type="Sprite2D" parent="Critters"]
+position = Vector2(620, 870)
+texture = ExtResource("13_mouse")
+script = ExtResource("10_critter")
+behaviour = "dart"
+idle_min = 6.0
+idle_max = 12.0
+waypoint_offset = Vector2(220, 0)
+
+[node name="Butterfly" type="Sprite2D" parent="Critters"]
+position = Vector2(700, 420)
+texture = ExtResource("14_butterfly")
+script = ExtResource("10_critter")
+behaviour = "drift"
+drift_amplitude = 80.0
+drift_speed = 0.4
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
