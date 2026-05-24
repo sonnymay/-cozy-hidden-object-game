@@ -1,8 +1,9 @@
 extends Node2D
 
 @export var scene_data_path: String = "res://data/scene_01.json"
+@export var parallax_strength: float = 30.0
 
-@onready var background: Sprite2D = $Background
+@onready var parallax: ParallaxBackground = $Parallax
 @onready var hidden_objects: Node2D = $HiddenObjects
 @onready var particles: GPUParticles2D = $Particles/FoundSparkle
 @onready var object_list: VBoxContainer = $HUD/Panel/ObjectList
@@ -31,10 +32,8 @@ func _ready() -> void:
 	if data.is_empty():
 		return
 
-	# Background (optional)
-	var bg_path: String = data.get("background", "")
-	if bg_path != "" and ResourceLoader.exists(bg_path):
-		background.texture = load(bg_path)
+	# Background is now 5 layered ParallaxLayer Sprites authored in gameplay.tscn.
+	# JSON's legacy "background" key is ignored on purpose.
 
 	var areas: Array = SceneLoader.populate(hidden_objects, data, ClickableScript)
 	GameManager.start_scene(data.get("scene_id", "scene_01"), areas.size())
@@ -103,3 +102,20 @@ func _on_scene_complete(scene_id: String, hints_used: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+func _process(_delta: float) -> void:
+	# Cursor parallax: shift the ParallaxBackground a few px based on mouse
+	# offset from viewport center. Each ParallaxLayer's motion_scale
+	# multiplies this, producing depth.
+	if parallax == null:
+		return
+	var viewport := get_viewport()
+	if viewport == null:
+		return
+	var size := viewport.get_visible_rect().size
+	var mouse := viewport.get_mouse_position()
+	var offset := Vector2(
+		(mouse.x / size.x - 0.5) * -parallax_strength,
+		(mouse.y / size.y - 0.5) * -parallax_strength * 0.6
+	)
+	parallax.scroll_offset = parallax.scroll_offset.lerp(offset, 0.15)

@@ -6,28 +6,33 @@
 
 Cozy hidden-object game in Godot 4. Differentiator: scenes that *breathe, twinkle, and react to touch* (parallax + ambient particles + interactive props + reveal interactions). Solo dev, 12-15 months part-time, target $7.99 on Steam.
 
-## Current state — last updated 2026-05-23
+## Current state — last updated 2026-05-23 (Step 1 art landed)
 
-**Phase 1 scaffold complete, Godot smoke-validated.** Initial git commit at `9b30e41`. Godot 4.6.3 stable installed locally. `godot --headless --quit-after 60` runs the project for 60 frames with zero errors. F5 launch from the GUI editor still pending user click-through but the scene loader, autoloads, and `.tscn` files all parse cleanly.
+**Scene_01 wired with Codex production art.** Godot 4.6.3 stable. `godot --headless --quit-after 120 res://scenes/gameplay.tscn` boots the gameplay scene cleanly with zero errors after a `--import` pass.
 
-Scaffold audit completed before commit — known fragile spots already addressed:
-- Removed hand-written `InputEventKey` Object syntax from `project.godot`; gameplay now uses Godot's built-in `ui_cancel` action (Esc) for back-to-menu.
-- `HintPulse` was an empty `Sprite2D` (invisible); replaced with a 16-vertex `Polygon2D` circle so the hint highlight is actually visible.
-- `CompletionPanel` had no dismiss UI; added Continue button → returns to main menu.
-- Placeholder PNGs generated via Pillow (1920×1080 pastel background + 8 × 128px sprites) so the scaffold renders real art instead of ColorRect fallbacks.
+Production art delivered by Codex (Brief 4 in plan addendum 6):
+- 5 background parallax layers in `assets/backgrounds/scene_01/` (`bg_01_sky` → `bg_05_overlay`)
+- 15 hidden-object sprites in `assets/objects/scene_01/` (8 original + 7 new — thimble, mouse, pinecone, snail, ribbon, postcard, button)
+- 11 prop sprites in `assets/props/scene_01/` (mixer, awning, curtain, flower_pot, lantern, plant, kettle, bell, drawer_closed/open, picture_frame)
+- 6 reveal-state sprites in `assets/reveals/scene_01/` (wardrobe/rug/teapot, each closed + open)
+- 1 mascot at `assets/characters/mc_idle.png`
+- All 38 generations logged in `assets_log.csv`
 
-What exists:
-- `project.godot` — Godot 4.3, GL Compatibility, 1920×1080, autoloads `GameManager` + `SaveSystem`
-- `scenes/`: `main_menu.tscn`, `gameplay.tscn`, `scene_template.tscn`, `pause_menu.tscn`, `settings.tscn`
-- `scripts/`: `game_manager.gd`, `save_system.gd`, `object_clickable.gd`, `hint_system.gd`, `scene_loader.gd`, `gameplay.gd`, `main_menu.gd`, `settings.gd`
-- `data/scene_01.json` — 8 placeholder hidden objects (JSON-validated)
-- `assets/` folder tree with `scene_01` subfolders; no real art or audio yet
-- `assets_log.csv`, `dev_journal.md`, `README.md`, `.gitignore`, git initialized
+Godot scene wiring (this turn):
+- `scenes/gameplay.tscn`: replaced single `Background` Sprite2D with `ParallaxBackground` + 5 `ParallaxLayer` children (motion_scale 0.1/0.3/0.6/0.85/1.0)
+- `scripts/gameplay.gd`: cursor parallax via `parallax.scroll_offset` lerp in `_process`; legacy `data.background` JSON key ignored now that bg is authored in the .tscn
+- Mascot Sprite2D added to gameplay scene, bottom-right corner, scaled 0.55
+- `data/scene_01.json` (already at 15 objects + 3 reveal/prop entries from prior turn) — Godot loader currently consumes only `hidden_objects`; reveals + props remain HTML-preview-only
 
-What's stubbed / falls back gracefully:
-- Background sprite — `scene_loader.gd` uses ColorRect rectangles when sprite/background PNGs missing
-- Chime SFX — silent until a `.wav` is dropped at `assets/audio/sfx/chime.wav`
-- Sparkle particles — yellow GPUParticles2D defined inline in `gameplay.tscn`
+Audit fixes from earlier (still in place):
+- `ui_cancel` action for back-to-menu (Esc)
+- Visible `Polygon2D` hint-pulse circle
+- Completion panel Continue button
+
+What's stubbed / falls back:
+- Chime SFX silent until `assets/audio/sfx/chime.wav` lands (Step 2 audio sourcing)
+- Reveals + interactive props not yet wired in Godot — work in the HTML preview only
+- No BGM yet
 
 ## Decisions locked
 
@@ -41,27 +46,18 @@ What's stubbed / falls back gracefully:
 
 ## Next action (resume here)
 
-**Step D from the addendum plan: smoke test the scaffold.**
-1. Install Godot 4.3+ from <https://godotengine.org/download> (macOS Universal binary).
-2. Open `project.godot` via Godot project manager.
-3. Press F5 → Main Menu loads → Play.
-4. Confirm: 8 peach rectangles visible → click each → strikethrough on list + sparkle particle → completion panel shows correct counts.
-5. Confirm: Hint button consumes 1 of 3 hints, pulses a random unfound rect, then locks for 60s.
-6. Quit, relaunch → main menu loads (save state for completion will only appear after one full clear).
-7. Press Esc during gameplay → returns to main menu.
+**User: F5 the project from the Godot editor and eyeball the new parallax bg + production sprites.** Confirm:
+1. All 5 bg layers stack into one coherent bakery image.
+2. Moving the mouse shifts the layers (cursor parallax).
+3. 15 sprites visible (some may overlap; reveals/props in `data/scene_01.json` are JSON-only, not yet wired in Godot).
+4. Mascot bird shows bottom-right.
+5. Hint, completion, Esc-to-menu still work.
 
-Any error → fix in scaffold code, not new features. Likely suspects: hand-written `.tscn` UIDs, autoload paths, `ParticleProcessMaterial` defaults.
+If anything looks off, report exactly what — I'll patch the .tscn / .gd, not redo art.
 
-## After smoke test passes
-
-**Step E — Phase 2a Week 1 style lock** (per master plan "This Week's Actions"):
-1. Subscribe to Midjourney commercial tier.
-2. Generate 10 throwaway scene backgrounds using the Section 3e style suffix verbatim.
-3. Stack 5 layers for one scene; verify they look like one coherent image.
-4. Pick the locked style; archive 5-10 "golden" reference images.
-5. Log every prompt + seed in `assets_log.csv`.
-
-Open a fresh plan for Phase 2a — don't bolt onto this one.
+**After F5 review passes:**
+- Step 2 — source CC0 audio (BGM + ~8 SFX) from freesound.org. I have a shopping list ready.
+- Step 4 cont. — wire props + reveals into Godot (mirroring `preview_scene_01.html`).
 
 ## Open questions
 
