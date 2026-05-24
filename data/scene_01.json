@@ -7,16 +7,16 @@
     { "id": "teapot",   "type": "lift_lid",     "position": [1500, 480], "size": [240, 260], "sprite_closed": "res://assets/reveals/scene_01/teapot_closed.png",     "sprite_open": "res://assets/reveals/scene_01/teapot_lid_lifted.png" }
   ],
   "props": [
-    { "id": "mixer",         "sprite": "res://assets/props/scene_01/prop_mixer.png",         "position": [1320, 220], "size": [256, 320], "reaction": "shake" },
-    { "id": "awning",        "sprite": "res://assets/props/scene_01/prop_awning.png",        "position": [200, 120],  "size": [480, 240], "reaction": "wobble" },
-    { "id": "curtain",       "sprite": "res://assets/props/scene_01/prop_curtain.png",       "position": [200, 360],  "size": [280, 400], "reaction": "sway" },
-    { "id": "flower_pot",    "sprite": "res://assets/props/scene_01/prop_flower_pot.png",    "position": [1780, 950], "size": [280, 260], "reaction": "wobble" },
-    { "id": "lantern",       "sprite": "res://assets/props/scene_01/prop_lantern.png",       "position": [1100, 700], "size": [220, 280], "reaction": "flare" },
-    { "id": "plant",         "sprite": "res://assets/props/scene_01/prop_plant.png",         "position": [140, 180],  "size": [240, 240], "reaction": "wobble" },
-    { "id": "kettle",        "sprite": "res://assets/props/scene_01/prop_kettle.png",        "position": [1700, 700], "size": [220, 220], "reaction": "shake" },
-    { "id": "bell",          "sprite": "res://assets/props/scene_01/prop_bell.png",          "position": [880, 700],  "size": [140, 160], "reaction": "wobble" },
-    { "id": "drawer",        "sprite": "res://assets/props/scene_01/prop_drawer_closed.png", "position": [720, 880],  "size": [260, 140], "reaction": "wobble" },
-    { "id": "picture_frame", "sprite": "res://assets/props/scene_01/prop_picture_frame.png", "position": [1240, 200], "size": [180, 220], "reaction": "wobble" }
+    { "id": "mixer",         "sprite": "res://assets/props/scene_01/prop_mixer.png",         "position": [1320, 220], "size": [256, 320], "caption": "*whirr*" },
+    { "id": "awning",        "sprite": "res://assets/props/scene_01/prop_awning.png",        "position": [200, 120],  "size": [480, 240], "caption": "*ripple*" },
+    { "id": "curtain",       "sprite": "res://assets/props/scene_01/prop_curtain.png",       "position": [200, 360],  "size": [280, 400], "caption": "*swish*" },
+    { "id": "flower_pot",    "sprite": "res://assets/props/scene_01/prop_flower_pot.png",    "position": [1780, 950], "size": [280, 260], "caption": "*rustle*" },
+    { "id": "lantern",       "sprite": "res://assets/props/scene_01/prop_lantern.png",       "position": [1100, 700], "size": [220, 280], "caption": "*flare*" },
+    { "id": "plant",         "sprite": "res://assets/props/scene_01/prop_plant.png",         "position": [140, 180],  "size": [240, 240], "caption": "*sway*" },
+    { "id": "kettle",        "sprite": "res://assets/props/scene_01/prop_kettle.png",        "position": [1700, 700], "size": [220, 220], "caption": "*pssst*" },
+    { "id": "bell",          "sprite": "res://assets/props/scene_01/prop_bell.png",          "position": [880, 700],  "size": [140, 160], "caption": "*ding!*" },
+    { "id": "drawer",        "sprite": "res://assets/props/scene_01/prop_drawer_closed.png", "position": [720, 880],  "size": [260, 140], "caption": "*slide*", "sprite_open": "res://assets/props/scene_01/prop_drawer_open.png" },
+    { "id": "picture_frame", "sprite": "res://assets/props/scene_01/prop_picture_frame.png", "position": [1240, 200], "size": [180, 220], "caption": "*click*" }
   ],
   "hidden_objects": [
     { "id": "teacup",     "display_name": "Teacup",       "sprite": "res://assets/objects/scene_01/obj_teacup.png",     "position": [500, 480], "in_reveal": "wardrobe" },

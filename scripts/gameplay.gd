@@ -22,13 +22,22 @@ const ClickableScript := preload("res://scripts/object_clickable.gd")
 const SceneLoader := preload("res://scripts/scene_loader.gd")
 const HintSystemScript := preload("res://scripts/hint_system.gd")
 
+const HOVER_BRIGHTEN := 0.18 # value bumped on hover
+const HOVER_SCALE   := 1.06  # sprite scale on hover
+
 var _hint_system: Node
 var _row_by_id: Dictionary = {}
-var _props: Array = []   # from SceneLoader.populate_props
-var _reveals: Array = [] # from SceneLoader.populate_reveals
+var _props: Array = []
+var _reveals: Array = []
 var _reveal_by_id: Dictionary = {}
 var _props_touched: Dictionary = {}
+var _hover_count: int = 0
 var _flicker_t: float = 0.0
+
+# Particle process materials (lazy-init)
+var _mat_steam: ParticleProcessMaterial
+var _mat_sparkle: ParticleProcessMaterial
+var _mat_splatter: ParticleProcessMaterial
 
 func _ready() -> void:
 	_hint_system = HintSystemScript.new()
@@ -41,24 +50,27 @@ func _ready() -> void:
 	if data.is_empty():
 		return
 
-	# Layer 3: reveals first (so hidden-object spawn can mark in_reveal items invisible)
 	_reveals = SceneLoader.populate_reveals(reveals_root, data)
 	for r in _reveals:
 		_reveal_by_id[r.id] = r
 		r.area.input_event.connect(_on_reveal_input.bind(r))
+		r.area.mouse_entered.connect(_on_reveal_hover.bind(r, true))
+		r.area.mouse_exited.connect(_on_reveal_hover.bind(r, false))
 	_hint_system.register_reveals(_reveals)
 
-	# Layer 2: interactive props
 	_props = SceneLoader.populate_props(props_root, data)
 	for p in _props:
 		p.area.input_event.connect(_on_prop_input.bind(p))
+		p.area.mouse_entered.connect(_on_prop_hover.bind(p, true))
+		p.area.mouse_exited.connect(_on_prop_hover.bind(p, false))
 
-	# Hidden objects
 	var areas: Array = SceneLoader.populate(hidden_objects, data, ClickableScript)
 	GameManager.start_scene(data.get("scene_id", "scene_01"), areas.size())
 	_build_object_list(areas)
 	for area in areas:
 		area.found.connect(_on_object_found.bind(area))
+		area.mouse_entered.connect(_on_object_hover.bind(area, true))
+		area.mouse_exited.connect(_on_object_hover.bind(area, false))
 
 	hint_button.pressed.connect(_on_hint_pressed)
 	GameManager.scene_complete.connect(_on_scene_complete)
@@ -113,45 +125,298 @@ func _update_hint_label() -> void:
 func _on_continue_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
-func _on_scene_complete(scene_id: String, hints_used: int) -> void:
+func _on_scene_complete(_scene_id: String, hints_used: int) -> void:
 	completion_label.text = "Scene complete!\nFound %d/%d\nHints used: %d\nDelights touched: %d/%d" % [
 		GameManager.found_ids.size(), GameManager.total_objects, hints_used,
 		_props_touched.size(), _props.size()
 	]
 	completion_panel.visible = true
 
-# ============ Layer 2 props ============
+# ============ P1 — Hover feedback ============
+
+func _set_cursor_hovered(on: bool) -> void:
+	# Aggregate hover count so cursor doesn't flicker between adjacent elements
+	if on:
+		_hover_count += 1
+	else:
+		_hover_count = max(0, _hover_count - 1)
+	Input.set_default_cursor_shape(
+		Input.CURSOR_POINTING_HAND if _hover_count > 0 else Input.CURSOR_ARROW
+	)
+
+func _on_prop_hover(prop: Dictionary, entered: bool) -> void:
+	_set_cursor_hovered(entered)
+	var sp: Sprite2D = prop.sprite
+	if sp == null: return
+	var tween := create_tween()
+	if entered:
+		tween.tween_property(sp, "modulate", Color(1.0 + HOVER_BRIGHTEN, 1.0 + HOVER_BRIGHTEN, 1.0 + HOVER_BRIGHTEN, 1.0), 0.12)
+		tween.parallel().tween_property(sp, "scale", Vector2(HOVER_SCALE, HOVER_SCALE), 0.12)
+	else:
+		tween.tween_property(sp, "modulate", Color(1, 1, 1, 1), 0.18)
+		tween.parallel().tween_property(sp, "scale", Vector2.ONE, 0.18)
+
+func _on_reveal_hover(reveal: Dictionary, entered: bool) -> void:
+	if reveal.get("opened", false): return
+	_set_cursor_hovered(entered)
+	var sp: Sprite2D = reveal.sprite
+	if sp == null: return
+	var tween := create_tween()
+	if entered:
+		tween.tween_property(sp, "modulate", Color(1.2, 1.2, 1.2, 1.0), 0.12)
+		tween.parallel().tween_property(sp, "scale", Vector2(1.03, 1.03), 0.12)
+	else:
+		tween.tween_property(sp, "modulate", Color(1, 1, 1, 1), 0.18)
+		tween.parallel().tween_property(sp, "scale", Vector2.ONE, 0.18)
+
+func _on_object_hover(area: Area2D, entered: bool) -> void:
+	if not area.input_pickable: return
+	_set_cursor_hovered(entered)
+	var sprites: Array = []
+	for child in area.get_children():
+		if child is Sprite2D:
+			sprites.append(child)
+	if sprites.is_empty(): return
+	var tween := create_tween()
+	for sp in sprites:
+		if entered:
+			tween.parallel().tween_property(sp, "modulate", Color(1.2, 1.2, 1.2, sp.modulate.a), 0.10)
+			tween.parallel().tween_property(sp, "scale", Vector2(HOVER_SCALE, HOVER_SCALE), 0.10)
+		else:
+			tween.parallel().tween_property(sp, "modulate", Color(1, 1, 1, sp.modulate.a), 0.15)
+			tween.parallel().tween_property(sp, "scale", Vector2.ONE, 0.15)
+
+# ============ P2 — Bespoke prop reactions ============
+
 func _on_prop_input(_viewport: Node, event: InputEvent, _shape_idx: int, prop: Dictionary) -> void:
 	if not (event is InputEventMouseButton): return
 	if not event.pressed: return
 	if event.button_index != MOUSE_BUTTON_LEFT: return
+	if prop.get("hover_busy", false): return
 	_props_touched[prop.id] = true
 	prop_counter.text = "Delights: %d/%d" % [_props_touched.size(), _props.size()]
-	_trigger_prop_reaction(prop)
+	if prop.caption != "":
+		_spawn_caption(prop.position + Vector2(0, -120), prop.caption)
+	_dispatch_reaction(prop)
 
-func _trigger_prop_reaction(prop: Dictionary) -> void:
+func _dispatch_reaction(prop: Dictionary) -> void:
 	var sp: Sprite2D = prop.sprite
 	if sp == null: return
-	var tween := create_tween()
-	match prop.reaction:
-		"wobble":
-			tween.tween_property(sp, "rotation", deg_to_rad(-6), 0.08)
-			tween.tween_property(sp, "rotation", deg_to_rad(5), 0.12)
-			tween.tween_property(sp, "rotation", deg_to_rad(-2), 0.10)
-			tween.tween_property(sp, "rotation", 0.0, 0.10)
-		"shake":
-			tween.tween_property(sp, "position:x", sp.position.x + 4, 0.05)
-			tween.tween_property(sp, "position:x", sp.position.x - 4, 0.05)
-			tween.tween_property(sp, "position:x", sp.position.x + 3, 0.05)
-			tween.tween_property(sp, "position:x", sp.position.x, 0.05)
-		"sway":
-			tween.tween_property(sp, "skew", deg_to_rad(-12), 0.4)
-			tween.tween_property(sp, "skew", 0.0, 0.6)
-		"flare":
-			tween.tween_property(sp, "modulate", Color(1.6, 1.4, 1.0, 1.0), 0.15)
-			tween.tween_property(sp, "modulate", Color(1, 1, 1, 1), 0.4)
+	prop.hover_busy = true
+	match prop.id:
+		"mixer":         _react_mixer(prop, sp)
+		"bell":          _react_bell(prop, sp)
+		"drawer":        _react_drawer(prop, sp)
+		"curtain":       _react_curtain(prop, sp)
+		"kettle":        _react_kettle(prop, sp)
+		"lantern":       _react_lantern(prop, sp)
+		"picture_frame": _react_picture(prop, sp)
+		"plant":         _react_plant(prop, sp)
+		"awning":        _react_awning(prop, sp)
+		"flower_pot":    _react_flower(prop, sp)
+		_:               _react_default(prop, sp)
+
+func _release_after(prop: Dictionary, t: float) -> void:
+	await get_tree().create_timer(t).timeout
+	prop.hover_busy = false
+
+func _react_mixer(prop: Dictionary, sp: Sprite2D) -> void:
+	# Body shakes vertically + steam puff above
+	var base := sp.position
+	var tw := create_tween()
+	for i in 6:
+		tw.tween_property(sp, "position", base + Vector2(0, -3 if i % 2 == 0 else 3), 0.05)
+	tw.tween_property(sp, "position", base, 0.06)
+	_spawn_particles(prop.position + Vector2(0, -160), "steam")
+	_release_after(prop, 0.45)
+
+func _react_bell(prop: Dictionary, sp: Sprite2D) -> void:
+	# Ring: rotate -35, +15, -8, 0
+	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(sp, "rotation", deg_to_rad(-35), 0.10)
+	tw.tween_property(sp, "rotation", deg_to_rad(20), 0.18)
+	tw.tween_property(sp, "rotation", deg_to_rad(-10), 0.16)
+	tw.tween_property(sp, "rotation", 0.0, 0.14)
+	_spawn_particles(prop.position + Vector2(0, -40), "sparkle")
+	_release_after(prop, 0.6)
+
+func _react_drawer(prop: Dictionary, sp: Sprite2D) -> void:
+	# Slide open: swap sprite to open, translate down 12, hold, swap closed, translate back
+	var open_path: String = prop.sprite_open_path
+	var base := sp.position
+	if open_path != "" and ResourceLoader.exists(open_path):
+		sp.texture = load(open_path)
+	var tw := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(sp, "position", base + Vector2(0, 12), 0.18)
+	tw.tween_interval(0.5)
+	tw.tween_property(sp, "position", base, 0.18)
+	tw.tween_callback(func() -> void:
+		if prop.sprite_closed_path != "" and ResourceLoader.exists(prop.sprite_closed_path):
+			sp.texture = load(prop.sprite_closed_path))
+	_release_after(prop, 1.0)
+
+func _react_curtain(prop: Dictionary, sp: Sprite2D) -> void:
+	# Sweep aside via skew + translate, hold, fall back
+	var tw := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(sp, "skew", deg_to_rad(-22), 0.35)
+	tw.parallel().tween_property(sp, "position:x", sp.position.x - 30, 0.35)
+	tw.tween_interval(0.6)
+	tw.tween_property(sp, "skew", 0.0, 0.5)
+	tw.parallel().tween_property(sp, "position:x", sp.position.x, 0.5)
+	_release_after(prop, 1.6)
+
+func _react_kettle(prop: Dictionary, sp: Sprite2D) -> void:
+	# Rocks gently + steam burst
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(sp, "rotation", deg_to_rad(-5), 0.18)
+	tw.tween_property(sp, "rotation", deg_to_rad(5), 0.22)
+	tw.tween_property(sp, "rotation", 0.0, 0.18)
+	_spawn_particles(prop.position + Vector2(-30, -80), "steam")
+	_release_after(prop, 0.7)
+
+func _react_lantern(prop: Dictionary, sp: Sprite2D) -> void:
+	# Flame brightens 2x for 0.5s, sparks puff out
+	var tw := create_tween()
+	tw.tween_property(sp, "modulate", Color(1.7, 1.5, 1.0, 1.0), 0.10)
+	tw.tween_interval(0.3)
+	tw.tween_property(sp, "modulate", Color(1, 1, 1, 1), 0.35)
+	# Also kick the lantern PointLight2D briefly
+	if lantern_glow != null:
+		var lt := create_tween()
+		lt.tween_property(lantern_glow, "energy", 1.6, 0.08)
+		lt.tween_interval(0.3)
+		lt.tween_property(lantern_glow, "energy", 0.85, 0.35)
+	_spawn_particles(prop.position + Vector2(0, -20), "sparkle")
+	_release_after(prop, 0.8)
+
+func _react_picture(prop: Dictionary, sp: Sprite2D) -> void:
+	# Tilts left, then snaps straight (as if user nudged it)
+	var tw := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(sp, "rotation", deg_to_rad(-6), 0.15)
+	tw.tween_property(sp, "rotation", 0.0, 0.4)
+	_release_after(prop, 0.6)
+
+func _react_plant(prop: Dictionary, sp: Sprite2D) -> void:
+	# Leaves sway — alternating skew + scale pulse
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(sp, "skew", deg_to_rad(8), 0.25)
+	tw.tween_property(sp, "skew", deg_to_rad(-6), 0.30)
+	tw.tween_property(sp, "skew", 0.0, 0.25)
+	_release_after(prop, 0.85)
+
+func _react_awning(prop: Dictionary, sp: Sprite2D) -> void:
+	# Ripples like fabric — wave of skews
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(sp, "skew", deg_to_rad(-7), 0.18)
+	tw.tween_property(sp, "skew", deg_to_rad(7), 0.22)
+	tw.tween_property(sp, "skew", deg_to_rad(-3), 0.18)
+	tw.tween_property(sp, "skew", 0.0, 0.18)
+	_release_after(prop, 0.8)
+
+func _react_flower(prop: Dictionary, sp: Sprite2D) -> void:
+	# Soft rotation wobble + sparkle pop
+	var tw := create_tween().set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(sp, "rotation", deg_to_rad(8), 0.5)
+	tw.tween_property(sp, "rotation", 0.0, 0.6)
+	_spawn_particles(prop.position + Vector2(0, -120), "sparkle")
+	_release_after(prop, 1.1)
+
+func _react_default(prop: Dictionary, sp: Sprite2D) -> void:
+	var tw := create_tween()
+	tw.tween_property(sp, "scale", Vector2(1.1, 1.1), 0.12)
+	tw.tween_property(sp, "scale", Vector2.ONE, 0.18)
+	_release_after(prop, 0.4)
+
+# ============ Caption + particle helpers ============
+
+func _spawn_caption(world_pos: Vector2, text: String) -> void:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.add_theme_font_size_override("font_size", 28)
+	lbl.position = world_pos - Vector2(0, 0)
+	add_child(lbl)
+	# Center horizontally by adjusting after first frame
+	lbl.size = Vector2.ZERO
+	await get_tree().process_frame
+	lbl.position.x -= lbl.size.x * 0.5
+	var tw := create_tween()
+	tw.tween_property(lbl, "position:y", lbl.position.y - 60, 1.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 1.2)
+	tw.tween_callback(func() -> void: lbl.queue_free())
+
+func _spawn_particles(world_pos: Vector2, kind: String) -> void:
+	var p := GPUParticles2D.new()
+	p.position = world_pos
+	p.amount = 18
+	p.one_shot = true
+	p.explosiveness = 0.9
+	match kind:
+		"steam":
+			p.lifetime = 1.2
+			p.process_material = _get_steam_material()
+		"sparkle":
+			p.lifetime = 0.8
+			p.process_material = _get_sparkle_material()
+		"splatter":
+			p.lifetime = 0.7
+			p.process_material = _get_splatter_material()
+	add_child(p)
+	p.restart()
+	p.emitting = true
+	# Auto-cleanup after lifetime + buffer
+	await get_tree().create_timer(p.lifetime + 0.3).timeout
+	p.queue_free()
+
+func _get_steam_material() -> ParticleProcessMaterial:
+	if _mat_steam == null:
+		_mat_steam = ParticleProcessMaterial.new()
+		_mat_steam.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		_mat_steam.emission_sphere_radius = 20.0
+		_mat_steam.direction = Vector3(0, -1, 0)
+		_mat_steam.spread = 25.0
+		_mat_steam.initial_velocity_min = 40.0
+		_mat_steam.initial_velocity_max = 80.0
+		_mat_steam.gravity = Vector3(0, -20, 0)
+		_mat_steam.scale_min = 0.6
+		_mat_steam.scale_max = 1.4
+		_mat_steam.color = Color(1, 1, 1, 0.75)
+	return _mat_steam
+
+func _get_sparkle_material() -> ParticleProcessMaterial:
+	if _mat_sparkle == null:
+		_mat_sparkle = ParticleProcessMaterial.new()
+		_mat_sparkle.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		_mat_sparkle.emission_sphere_radius = 16.0
+		_mat_sparkle.direction = Vector3(0, -1, 0)
+		_mat_sparkle.spread = 180.0
+		_mat_sparkle.initial_velocity_min = 60.0
+		_mat_sparkle.initial_velocity_max = 140.0
+		_mat_sparkle.gravity = Vector3(0, 60, 0)
+		_mat_sparkle.scale_min = 0.4
+		_mat_sparkle.scale_max = 1.0
+		_mat_sparkle.color = Color(1, 0.94, 0.6, 1.0)
+	return _mat_sparkle
+
+func _get_splatter_material() -> ParticleProcessMaterial:
+	if _mat_splatter == null:
+		_mat_splatter = ParticleProcessMaterial.new()
+		_mat_splatter.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		_mat_splatter.emission_sphere_radius = 12.0
+		_mat_splatter.direction = Vector3(0, -1, 0)
+		_mat_splatter.spread = 75.0
+		_mat_splatter.initial_velocity_min = 80.0
+		_mat_splatter.initial_velocity_max = 160.0
+		_mat_splatter.gravity = Vector3(0, 120, 0)
+		_mat_splatter.scale_min = 0.5
+		_mat_splatter.scale_max = 1.0
+		_mat_splatter.color = Color(0.85, 0.6, 0.45, 0.9)
+	return _mat_splatter
 
 # ============ Layer 3 reveals ============
+
 func _on_reveal_input(_viewport: Node, event: InputEvent, _shape_idx: int, reveal: Dictionary) -> void:
 	if not (event is InputEventMouseButton): return
 	if not event.pressed: return
@@ -163,7 +428,6 @@ func _open_reveal(reveal: Dictionary) -> void:
 	reveal.opened = true
 	reveal.area.input_pickable = false
 	_hint_system.mark_reveal_open(reveal.id)
-	# Swap to open sprite via quick fade
 	var sp: Sprite2D = reveal.sprite
 	if sp != null and reveal.sprite_open_path != "" and ResourceLoader.exists(reveal.sprite_open_path):
 		var tween := create_tween()
@@ -171,7 +435,7 @@ func _open_reveal(reveal: Dictionary) -> void:
 		tween.tween_callback(func() -> void:
 			sp.texture = load(reveal.sprite_open_path))
 		tween.tween_property(sp, "modulate:a", 1.0, 0.18)
-	# Reveal items inside
+	_spawn_particles(reveal.position, "sparkle")
 	await get_tree().create_timer(0.4).timeout
 	for child in hidden_objects.get_children():
 		if not (child is Area2D): continue
@@ -180,12 +444,12 @@ func _open_reveal(reveal: Dictionary) -> void:
 		var fade := create_tween()
 		fade.tween_property(child, "modulate:a", 1.0, 0.4)
 		child.input_pickable = true
-		# Strip the "?" prefix from the list row
 		var row: Label = _row_by_id.get(child.object_id, null)
 		if row != null and row.text.begins_with("? "):
 			row.text = row.text.substr(2)
 
 # ============ Cursor parallax + lantern flicker ============
+
 func _process(delta: float) -> void:
 	if parallax != null:
 		var viewport := get_viewport()
@@ -197,12 +461,14 @@ func _process(delta: float) -> void:
 				(mouse.y / size.y - 0.5) * -parallax_strength * 0.6
 			)
 			parallax.scroll_offset = parallax.scroll_offset.lerp(offset, 0.15)
-	# Lantern flicker
 	if lantern_glow != null:
 		_flicker_t += delta * 9.0
 		var n := sin(_flicker_t) * 0.5 + sin(_flicker_t * 2.3 + 1.0) * 0.3
-		lantern_glow.energy = 0.75 + n * 0.25
+		# Don't fight the reaction tween — only set when within ambient range
+		if lantern_glow.energy <= 1.1:
+			lantern_glow.energy = 0.75 + n * 0.15
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")

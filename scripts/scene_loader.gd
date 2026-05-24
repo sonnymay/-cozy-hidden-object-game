@@ -91,8 +91,11 @@ static func populate_props(props_root: Node, scene_data: Dictionary) -> Array:
 			"id": entry.get("id", ""),
 			"area": area,
 			"sprite": sprite,
-			"reaction": entry.get("reaction", "wobble"),
+			"sprite_closed_path": sprite_path,
+			"sprite_open_path": entry.get("sprite_open", ""),
+			"caption": entry.get("caption", ""),
 			"position": Vector2(pos[0], pos[1]),
+			"hover_busy": false,
 		})
 	return created
 
