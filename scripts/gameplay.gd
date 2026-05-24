@@ -513,5 +513,186 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		if _placement_mode:
+			_set_placement_mode(false)
+			return
 		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 		get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
+
+# ============ PLACEMENT EDITOR (dev tool) ============
+# F2 → toggle placement mode. In placement mode:
+#   - Click + drag any item / prop / reveal to reposition
+#   - Z while dragging cycles z_index 0..4
+#   - S writes positions + z_index back to data/scene_01.json
+#   - Esc exits placement mode
+
+var _placement_mode: bool = false
+var _placement_hud: Label = null
+var _dragging_node: Node2D = null
+var _drag_offset: Vector2 = Vector2.ZERO
+var _disabled_pickable: Array = []
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F2:
+			_set_placement_mode(not _placement_mode)
+			return
+		if not _placement_mode: return
+		if event.keycode == KEY_S:
+			_save_placements()
+		elif event.keycode == KEY_Z and _dragging_node != null:
+			_dragging_node.z_index = (_dragging_node.z_index + 1) % 5
+			_update_placement_hud()
+
+	if not _placement_mode: return
+
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_placement_try_grab(get_viewport().get_mouse_position())
+			else:
+				_dragging_node = null
+				_update_placement_hud()
+	elif event is InputEventMouseMotion and _dragging_node != null:
+		_dragging_node.global_position = get_viewport().get_mouse_position() + _drag_offset
+		_update_placement_hud()
+
+func _set_placement_mode(on: bool) -> void:
+	_placement_mode = on
+	if on:
+		_disabled_pickable.clear()
+		for area in _collect_all_areas():
+			if area.input_pickable:
+				_disabled_pickable.append(area)
+				area.input_pickable = false
+		Input.set_default_cursor_shape(Input.CURSOR_DRAG)
+	else:
+		for area in _disabled_pickable:
+			if is_instance_valid(area):
+				area.input_pickable = true
+		_disabled_pickable.clear()
+		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	if on:
+		if _placement_hud == null:
+			_placement_hud = Label.new()
+			_placement_hud.add_theme_font_size_override("font_size", 18)
+			_placement_hud.add_theme_color_override("font_color", Color(1, 1, 1))
+			_placement_hud.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+			_placement_hud.add_theme_constant_override("outline_size", 4)
+			_placement_hud.position = Vector2(420, 16)
+			$HUD.add_child(_placement_hud)
+		_placement_hud.visible = true
+		_update_placement_hud()
+	else:
+		_dragging_node = null
+		if _placement_hud != null:
+			_placement_hud.visible = false
+
+func _collect_all_areas() -> Array:
+	var out: Array = []
+	for c in hidden_objects.get_children():
+		if c is Area2D:
+			out.append(c)
+	for p in _props:
+		out.append(p.area)
+	for r in _reveals:
+		out.append(r.area)
+	return out
+
+func _placement_try_grab(mouse_pos: Vector2) -> void:
+	# Iterate candidate entities: hidden objects → props → reveals.
+	# First match (closest to cursor) wins.
+	var candidates: Array = []
+	for c in hidden_objects.get_children():
+		if c is Area2D:
+			candidates.append({"node": c, "size": Vector2(128, 128)})
+	for p in _props:
+		candidates.append({"node": p.area, "size": _get_area_size(p.area)})
+	for r in _reveals:
+		candidates.append({"node": r.area, "size": _get_area_size(r.area)})
+	var best: Node2D = null
+	var best_dist: float = INF
+	for cand in candidates:
+		var n: Node2D = cand.node
+		var half: Vector2 = cand.size * 0.5
+		var rect := Rect2(n.global_position - half, cand.size)
+		if rect.has_point(mouse_pos):
+			var d := n.global_position.distance_to(mouse_pos)
+			if d < best_dist:
+				best_dist = d
+				best = n
+	if best != null:
+		_dragging_node = best
+		_drag_offset = best.global_position - mouse_pos
+		_update_placement_hud()
+
+func _get_area_size(area: Area2D) -> Vector2:
+	for c in area.get_children():
+		if c is CollisionShape2D and c.shape is RectangleShape2D:
+			return c.shape.size
+	return Vector2(128, 128)
+
+func _update_placement_hud() -> void:
+	if _placement_hud == null: return
+	var status := "PLACEMENT MODE | S=save  Z=cycle z  Esc=exit"
+	if _dragging_node != null:
+		status += "\n%s @ (%d, %d) z=%d" % [
+			_dragging_node.name,
+			int(_dragging_node.global_position.x),
+			int(_dragging_node.global_position.y),
+			_dragging_node.z_index
+		]
+	_placement_hud.text = status
+
+func _save_placements() -> void:
+	# Re-read JSON, update position + z_index from current scene state, write back
+	var path: String = scene_data_path
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		push_error("Cannot read %s" % path); return
+	var text := f.get_as_text()
+	f.close()
+	var data: Variant = JSON.parse_string(text)
+	if typeof(data) != TYPE_DICTIONARY:
+		push_error("JSON parse failed"); return
+
+	# Build lookup: id → current Node2D
+	var id_to_node: Dictionary = {}
+	for c in hidden_objects.get_children():
+		if c is Area2D and "object_id" in c:
+			id_to_node[c.object_id] = c
+	for p in _props:
+		id_to_node["prop:" + p.id] = p.area
+	for r in _reveals:
+		id_to_node["reveal:" + r.id] = r.area
+
+	# Patch hidden_objects entries
+	for entry in data.get("hidden_objects", []):
+		var n: Node2D = id_to_node.get(entry.get("id", ""), null)
+		if n != null:
+			entry["position"] = [int(n.position.x), int(n.position.y)]
+			if n.z_index != 0:
+				entry["z_index"] = n.z_index
+	for entry in data.get("props", []):
+		var n: Node2D = id_to_node.get("prop:" + entry.get("id", ""), null)
+		if n != null:
+			entry["position"] = [int(n.position.x), int(n.position.y)]
+			if n.z_index != 0:
+				entry["z_index"] = n.z_index
+	for entry in data.get("reveals", []):
+		var n: Node2D = id_to_node.get("reveal:" + entry.get("id", ""), null)
+		if n != null:
+			entry["position"] = [int(n.position.x), int(n.position.y)]
+			if n.z_index != 0:
+				entry["z_index"] = n.z_index
+
+	var out_text := JSON.stringify(data, "  ")
+	var w := FileAccess.open(path, FileAccess.WRITE)
+	if w == null:
+		push_error("Cannot write %s" % path); return
+	w.store_string(out_text)
+	w.close()
+	if _placement_hud != null:
+		_placement_hud.text = "PLACEMENT MODE | SAVED → %s" % path
+		await get_tree().create_timer(1.2).timeout
+		_update_placement_hud()

@@ -57,6 +57,9 @@ static func populate(
 			area.modulate.a = 0.0
 			area.input_pickable = false
 
+		if entry.has("z_index"):
+			area.z_index = int(entry.z_index)
+
 		hidden_objects_root.add_child(area)
 		created.append(area)
 	return created
@@ -85,6 +88,9 @@ static func populate_props(props_root: Node, scene_data: Dictionary) -> Array:
 			sprite = Sprite2D.new()
 			sprite.texture = load(sprite_path)
 			area.add_child(sprite)
+
+		if entry.has("z_index"):
+			area.z_index = int(entry.z_index)
 
 		props_root.add_child(area)
 		created.append({
@@ -123,6 +129,9 @@ static func populate_reveals(reveals_root: Node, scene_data: Dictionary) -> Arra
 			sprite = Sprite2D.new()
 			sprite.texture = load(closed_path)
 			area.add_child(sprite)
+
+		if entry.has("z_index"):
+			area.z_index = int(entry.z_index)
 
 		reveals_root.add_child(area)
 		created.append({
