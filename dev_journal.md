@@ -34,3 +34,23 @@ Rejected the busy-shelf options (02 bookshop, 04 post office, 07 clockmaker, 09 
 - Run Brief 3 in Codex with `bg_throwaway_01.png` as `--sref` to overwrite the Pillow placeholders.
 - Pick mascot silhouette (bird / bunny / cat).
 - Train mascot LoRA once style is locked.
+
+## 2026-05-24 — Project pivot: bakery → isometric living room
+
+User shared a reference screenshot of a Toca-Boca-style isometric cozy HOG with cutaway rooms + flat vector art. Painterly bakery direction abandoned.
+
+Sequence:
+1. Codex generated 8 v2 throwaways at `assets/_style_exploration_v2/iso_throwaway_01..08.png`
+2. Reviewed all 8 — style is highly consistent (flat vector, isometric 3/4 cutaway, mint/peach/butter palette)
+3. **Picked `iso_throwaway_05.png` (cozy living room)** as new locked style anchor
+
+Why #05: 6+ usable HOG surfaces (sofa, coffee table, shelves, mantle, rug, armchair), warmest cozy vibe, full palette demonstration in one frame, natural NPC placements (sofa-reader, armchair-knitter, mantle-cat).
+
+User constraints locked:
+- No mascots (drop mc_idle bird from any future scene)
+- Pivot tolerance: open-ended (acknowledged risk)
+- Scene_01 is now a living room, not a bakery
+
+Sunk cost: ~80% of bakery production art. All code (scaffold, autoloads, scene_loader, ambient_choreographer, critter, hint_system) survives the pivot 100%.
+
+Next: hand Codex the Brief 5 (production art for iso living room scene_01) — see plan Addendum 11.
