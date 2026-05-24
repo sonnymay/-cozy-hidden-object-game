@@ -4,6 +4,7 @@ signal found
 
 @export var object_id: String = ""
 @export var display_name: String = ""
+@export var in_reveal: String = ""
 
 var _is_found := false
 
