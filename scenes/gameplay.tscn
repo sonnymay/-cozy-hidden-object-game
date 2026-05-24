@@ -1,20 +1,14 @@
-[gd_scene load_steps=19 format=3 uid="uid://b2gameplay0001"]
+[gd_scene load_steps=11 format=3 uid="uid://b2gameplay0001"]
 
 [ext_resource type="Script" path="res://scripts/gameplay.gd" id="1_gp"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_01_sky.png" id="2_bg1"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_00_floor.png" id="2b_floor"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_02_far.png" id="3_bg2"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_03_mid.png" id="4_bg3"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_04_near.png" id="5_bg4"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_05_overlay.png" id="6_bg5"]
-[ext_resource type="Texture2D" path="res://assets/characters/mc_idle.png" id="7_mc"]
-[ext_resource type="Texture2D" path="res://assets/fx/dust_particle.png" id="8_dust"]
-[ext_resource type="Shader" path="res://assets/shaders/wind.gdshader" id="9_wind"]
-[ext_resource type="Script" path="res://scripts/critter.gd" id="10_critter"]
-[ext_resource type="Texture2D" path="res://assets/characters/critter_bird.png" id="11_bird"]
-[ext_resource type="Texture2D" path="res://assets/characters/critter_cat.png" id="12_cat"]
-[ext_resource type="Texture2D" path="res://assets/characters/critter_mouse.png" id="13_mouse"]
-[ext_resource type="Texture2D" path="res://assets/characters/critter_butterfly.png" id="14_butterfly"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/scene_01/bg_living_room.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/fx/dust_particle.png" id="3_dust"]
+[ext_resource type="Script" path="res://scripts/critter.gd" id="4_critter"]
+[ext_resource type="Texture2D" path="res://assets/characters/critter_bird.png" id="5_bird"]
+[ext_resource type="Texture2D" path="res://assets/characters/critter_butterfly.png" id="6_butterfly"]
+[ext_resource type="Texture2D" path="res://assets/characters/npc_reader.png" id="7_reader"]
+[ext_resource type="Texture2D" path="res://assets/characters/npc_knitter.png" id="8_knitter"]
+[ext_resource type="Texture2D" path="res://assets/characters/npc_cat.png" id="9_npccat"]
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_sparkle"]
 emission_shape = 1
@@ -28,91 +22,67 @@ scale_min = 0.4
 scale_max = 1.0
 color = Color(1, 0.94, 0.7, 1)
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dust"]
-emission_shape = 3
-emission_box_extents = Vector3(400, 200, 1)
-direction = Vector3(0.6, 1, 0)
-spread = 25.0
-initial_velocity_min = 12.0
-initial_velocity_max = 28.0
-gravity = Vector3(0, 4, 0)
-scale_min = 0.6
-scale_max = 1.4
-color = Color(1, 0.96, 0.82, 0.85)
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_wind"]
-shader = ExtResource("9_wind")
-shader_parameter/strength = 0.012
-shader_parameter/speed = 0.6
-shader_parameter/frequency = 1.4
-
 [node name="Gameplay" type="Node2D"]
 script = ExtResource("1_gp")
 
-[node name="Parallax" type="ParallaxBackground" parent="."]
-
-[node name="LayerSky" type="ParallaxLayer" parent="Parallax"]
-motion_scale = Vector2(0.1, 0.1)
-
-[node name="Sprite" type="Sprite2D" parent="Parallax/LayerSky"]
+[node name="Background" type="Sprite2D" parent="."]
 position = Vector2(960, 540)
-texture = ExtResource("2_bg1")
-
-[node name="LayerFloor" type="ParallaxLayer" parent="Parallax"]
-motion_scale = Vector2(0.2, 0.2)
-
-[node name="Sprite" type="Sprite2D" parent="Parallax/LayerFloor"]
-position = Vector2(960, 540)
-texture = ExtResource("2b_floor")
-
-[node name="LayerFar" type="ParallaxLayer" parent="Parallax"]
-motion_scale = Vector2(0.35, 0.35)
-
-[node name="Sprite" type="Sprite2D" parent="Parallax/LayerFar"]
-position = Vector2(960, 540)
-texture = ExtResource("3_bg2")
-
-[node name="LayerMid" type="ParallaxLayer" parent="Parallax"]
-motion_scale = Vector2(0.6, 0.6)
-
-[node name="Sprite" type="Sprite2D" parent="Parallax/LayerMid"]
-position = Vector2(960, 540)
-texture = ExtResource("4_bg3")
-
-[node name="LayerNear" type="ParallaxLayer" parent="Parallax"]
-motion_scale = Vector2(0.85, 0.85)
-
-[node name="Sprite" type="Sprite2D" parent="Parallax/LayerNear"]
-position = Vector2(960, 540)
-texture = ExtResource("5_bg4")
-
-[node name="LayerOverlay" type="ParallaxLayer" parent="Parallax"]
-motion_scale = Vector2(1.0, 1.0)
-
-[node name="Sprite" type="Sprite2D" parent="Parallax/LayerOverlay"]
-material = SubResource("ShaderMaterial_wind")
-position = Vector2(960, 540)
-texture = ExtResource("6_bg5")
+texture = ExtResource("2_bg")
 
 [node name="Ambient" type="Node2D" parent="."]
 
-[node name="SunShaft" type="Polygon2D" parent="Ambient"]
-modulate = Color(1, 0.93, 0.72, 0.4)
-position = Vector2(0, 0)
-color = Color(1, 0.92, 0.7, 0.5)
-polygon = PackedVector2Array(0, 0, 720, 0, 360, 1200, -200, 1200)
-
 [node name="LanternGlow" type="PointLight2D" parent="Ambient"]
-position = Vector2(1180, 760)
+position = Vector2(1500, 540)
 color = Color(1, 0.82, 0.45, 1)
-energy = 0.85
-texture_scale = 1.6
+energy = 0.6
+texture_scale = 1.4
 
 [node name="Reveals" type="Node2D" parent="."]
 
 [node name="Props" type="Node2D" parent="."]
 
 [node name="HiddenObjects" type="Node2D" parent="."]
+
+[node name="NPCs" type="Node2D" parent="."]
+
+[node name="NpcReader" type="Sprite2D" parent="NPCs"]
+position = Vector2(560, 440)
+scale = Vector2(0.85, 0.85)
+texture = ExtResource("7_reader")
+z_index = 1
+
+[node name="NpcKnitter" type="Sprite2D" parent="NPCs"]
+position = Vector2(1500, 740)
+scale = Vector2(0.85, 0.85)
+texture = ExtResource("8_knitter")
+z_index = 1
+
+[node name="NpcCat" type="Sprite2D" parent="NPCs"]
+position = Vector2(900, 820)
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("9_npccat")
+z_index = 2
+
+[node name="Critters" type="Node2D" parent="."]
+
+[node name="Bird" type="Sprite2D" parent="Critters"]
+position = Vector2(220, 220)
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("5_bird")
+script = ExtResource("4_critter")
+behaviour = "hop"
+idle_min = 5.0
+idle_max = 10.0
+hop_height = 22.0
+
+[node name="Butterfly" type="Sprite2D" parent="Critters"]
+position = Vector2(1200, 240)
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("6_butterfly")
+script = ExtResource("4_critter")
+behaviour = "drift"
+drift_amplitude = 60.0
+drift_speed = 0.35
 
 [node name="Particles" type="Node2D" parent="."]
 
@@ -125,59 +95,16 @@ explosiveness = 0.9
 process_material = SubResource("ParticleProcessMaterial_sparkle")
 
 [node name="DustMotes" type="GPUParticles2D" parent="Particles"]
-position = Vector2(450, 320)
-amount = 20
+position = Vector2(280, 240)
+amount = 16
 lifetime = 8.0
 preprocess = 4.0
-texture = ExtResource("8_dust")
-process_material = SubResource("ParticleProcessMaterial_dust")
+texture = ExtResource("3_dust")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(960, 540)
 
 [node name="Chime" type="AudioStreamPlayer" parent="."]
-
-[node name="Mascot" type="Sprite2D" parent="."]
-position = Vector2(1780, 980)
-scale = Vector2(0.55, 0.55)
-texture = ExtResource("7_mc")
-
-[node name="Critters" type="Node2D" parent="."]
-
-[node name="Bird" type="Sprite2D" parent="Critters"]
-position = Vector2(380, 280)
-texture = ExtResource("11_bird")
-script = ExtResource("10_critter")
-behaviour = "hop"
-idle_min = 4.0
-idle_max = 8.0
-hop_height = 30.0
-
-[node name="Cat" type="Sprite2D" parent="Critters"]
-position = Vector2(960, 940)
-texture = ExtResource("12_cat")
-script = ExtResource("10_critter")
-behaviour = "stretch"
-idle_min = 8.0
-idle_max = 14.0
-stretch_amount = 0.18
-
-[node name="Mouse" type="Sprite2D" parent="Critters"]
-position = Vector2(620, 870)
-texture = ExtResource("13_mouse")
-script = ExtResource("10_critter")
-behaviour = "dart"
-idle_min = 6.0
-idle_max = 12.0
-waypoint_offset = Vector2(220, 0)
-
-[node name="Butterfly" type="Sprite2D" parent="Critters"]
-position = Vector2(700, 420)
-texture = ExtResource("14_butterfly")
-script = ExtResource("10_critter")
-behaviour = "drift"
-drift_amplitude = 80.0
-drift_speed = 0.4
 
 [node name="HUD" type="CanvasLayer" parent="."]
 

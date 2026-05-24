@@ -6,7 +6,34 @@
 
 Cozy hidden-object game in Godot 4. Differentiator: scenes that *breathe, twinkle, and react to touch* (parallax + ambient particles + interactive props + reveal interactions). Solo dev, 12-15 months part-time, target $7.99 on Steam.
 
-## Current state — last updated 2026-05-23 (Step 1 art landed)
+## Current state — last updated 2026-05-24 (Brief 5 art wired)
+
+**Scene_01 is now a cozy living room in flat-vector isometric style.** Brief 5 production art (35 PNGs) landed and is wired into Godot. Bakery scaffolding removed (parallax, wind shader, mascot, old prop IDs). `godot --headless --quit-after 180 res://scenes/gameplay.tscn` boots zero errors.
+
+What's wired:
+- `bg_living_room.png` as a single Sprite2D background (no parallax — flat iso)
+- 15 hidden objects positioned naturally across sofa / coffee table / mantle / shelves / floor (4 of them gated inside 3 reveals)
+- 10 living-room props with hover + bespoke reactions: mantle_clock, floor_lamp, throw_pillow, fireplace, vase, plant, tea_on_table, blanket, book_stack, picture_frame
+- 3 reveals (sofa cushion lift, coffee drawer, mantle box) with sprite-swap animations
+- 3 static NPC Sprite2Ds: npc_reader on sofa, npc_knitter in armchair, npc_cat on rug (no click handlers — they don't intercept hidden-object clicks)
+- 2 ambient critters: bird (windowsill hop) + butterfly (drift). Animal critters (cat, mouse) removed — npc_cat covers the cat role.
+- Ambient choreographer driving idle animation on all 10 props
+- Lantern PointLight2D in fireplace area for warm glow
+- Dust motes in upper-left sun area
+- Sparkle particles on found-item
+- Hint system reveal-aware
+- Placement editor (F2) ready for fine-tuning
+- HUD + completion + Esc all preserved
+
+What's gone:
+- ParallaxBackground + 5 layers
+- Wind shader on overlay
+- Mascot Sprite2D (no mascots per user spec)
+- Bakery prop IDs in PROP_AMBIENTS (legacy entries kept in _dispatch_reaction match for backward compat)
+
+----
+
+## Earlier state — 2026-05-23 (Brief 4 / bakery)
 
 **Scene_01 wired with Codex production art.** Godot 4.6.3 stable. `godot --headless --quit-after 120 res://scenes/gameplay.tscn` boots the gameplay scene cleanly with zero errors after a `--import` pass.
 
@@ -49,18 +76,23 @@ What's stubbed / falls back:
 
 ## Next action (resume here)
 
-**User: F5 the project from the Godot editor and eyeball the new parallax bg + production sprites.** Confirm:
-1. All 5 bg layers stack into one coherent bakery image.
-2. Moving the mouse shifts the layers (cursor parallax).
-3. 15 sprites visible (some may overlap; reveals/props in `data/scene_01.json` are JSON-only, not yet wired in Godot).
-4. Mascot bird shows bottom-right.
-5. Hint, completion, Esc-to-menu still work.
+**User: F5 the new living-room scene and judge.** Confirm:
+1. `bg_living_room.png` fills the viewport correctly.
+2. 15 hidden objects visible in plausible positions on living-room surfaces (some may need F2-placement-editor tuning — that's fine).
+3. 11 of the 15 are immediately clickable; 4 are hidden behind reveals (Teacup + Letter in coffee drawer, Brass Key + Sock under sofa cushion, Thimble in mantle box).
+4. Clicking each prop triggers its bespoke reaction (hover brightens + reaction tween).
+5. Hint button works + 60s cooldown + reveal-aware pulses.
+6. Completion modal appears after all 15 found.
+7. Esc returns to main menu.
+8. NO mascot bird visible.
+9. NPC reader / knitter / cat visible but don't intercept clicks meant for hidden objects.
 
-If anything looks off, report exactly what — I'll patch the .tscn / .gd, not redo art.
+**If a hidden object or prop sits in a dumb spot:** press F2 to enter placement mode, drag the item to a better surface, Z to cycle z_index, S to save. No code or art changes needed — JSON updates in place.
 
 **After F5 review passes:**
-- Step 2 — source CC0 audio (BGM + ~8 SFX) from freesound.org. I have a shopping list ready.
-- Step 4 cont. — wire props + reveals into Godot (mirroring `preview_scene_01.html`).
+- Hand Brief 6 to Codex (50-sprite shared library, drafted in plan addendum 12)
+- Once library lands, dense-populate the living room via placement editor for the "hundreds of elements" LFC feel
+- Decide on alive mechanics A-E (cursor-reactive, env events, celebration chains, camera breathing, critter migrations)
 
 ## Open questions
 

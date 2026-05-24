@@ -1,9 +1,8 @@
 extends Node2D
 
 @export var scene_data_path: String = "res://data/scene_01.json"
-@export var parallax_strength: float = 30.0
 
-@onready var parallax: ParallaxBackground = $Parallax
+@onready var background: Sprite2D = $Background
 @onready var hidden_objects: Node2D = $HiddenObjects
 @onready var props_root: Node2D = $Props
 @onready var reveals_root: Node2D = $Reveals
@@ -23,17 +22,18 @@ const SceneLoader := preload("res://scripts/scene_loader.gd")
 const HintSystemScript := preload("res://scripts/hint_system.gd")
 const AmbientChoreographerScript := preload("res://scripts/ambient_choreographer.gd")
 
-# Per-prop ambient behaviours — what each prop does when no one is clicking
+# Per-prop ambient behaviours — what each prop does when no one is clicking.
+# Keys are prop IDs from data/scene_01.json (current = living-room set).
 const PROP_AMBIENTS := {
-	"mixer":         "wobble",      # rare tiny rumble
-	"awning":        "sway",        # continuous fabric ripple
-	"curtain":       "sway",        # continuous breathing
-	"flower_pot":    "breathe",     # gentle scale pulse
-	"lantern":       "flame_pulse", # rapid subtle shimmer
+	"mantle_clock":  "wobble",      # rare tick nudge
+	"floor_lamp":    "shimmer",     # rare brightness pulse
+	"throw_pillow":  "breathe",     # gentle scale pulse
+	"fireplace":     "flame_pulse", # rapid subtle shimmer (the fire)
+	"vase":          "breathe",     # very gentle settle
 	"plant":         "sway",        # continuous leaf sway
-	"kettle":        "steam_puff",  # occasional steam burst
-	"bell":          "wobble",      # rare tiny ring
-	"drawer":        "wobble",      # rare settle
+	"tea_on_table":  "steam_puff",  # occasional steam burst above the tray
+	"blanket":       "breathe",     # gentle fabric breathing
+	"book_stack":    "wobble",      # rare settle
 	"picture_frame": "wobble",      # rare nudge
 }
 
@@ -95,14 +95,8 @@ func _ready() -> void:
 			opts["particle_offset"] = Vector2(0, -80)
 			opts["particle_kind"] = "steam"
 		_choreographer.register(p.sprite, kind, opts)
-	# Mascot bobs continuously
-	var mascot := get_node_or_null("Mascot")
-	if mascot != null:
-		_choreographer.register(mascot, "bob")
-	# Distant rare shimmer on overlay layer (window light glinting)
-	var overlay_sprite := get_node_or_null("Parallax/LayerOverlay/Sprite")
-	if overlay_sprite != null:
-		_choreographer.register(overlay_sprite, "shimmer")
+	# Mascot + parallax overlay registration removed in living-room rewrite.
+	# NPCs (reader, knitter, cat) are intentionally STATIC per user spec.
 
 	var areas: Array = SceneLoader.populate(hidden_objects, data, ClickableScript)
 	GameManager.start_scene(data.get("scene_id", "scene_01"), areas.size())
@@ -247,14 +241,24 @@ func _dispatch_reaction(prop: Dictionary) -> void:
 	if sp == null: return
 	prop.hover_busy = true
 	match prop.id:
+		# Living-room props (current scene_01)
+		"mantle_clock":  _react_picture(prop, sp)  # tick-nudge feels like a frame straighten
+		"floor_lamp":    _react_lantern(prop, sp)  # brightness flare
+		"throw_pillow":  _react_flower(prop, sp)   # elastic squish
+		"fireplace":     _react_lantern(prop, sp)  # flame brightens
+		"vase":          _react_bell(prop, sp)     # gentle ring/sway
+		"tea_on_table":  _react_kettle(prop, sp)   # steam burst
+		"blanket":       _react_curtain(prop, sp)  # fabric sway
+		"book_stack":    _react_drawer(prop, sp)   # settle motion
+		"picture_frame": _react_picture(prop, sp)
+		"plant":         _react_plant(prop, sp)
+		# Legacy bakery prop IDs (preserved for backward compat if old JSON loads)
 		"mixer":         _react_mixer(prop, sp)
 		"bell":          _react_bell(prop, sp)
 		"drawer":        _react_drawer(prop, sp)
 		"curtain":       _react_curtain(prop, sp)
 		"kettle":        _react_kettle(prop, sp)
 		"lantern":       _react_lantern(prop, sp)
-		"picture_frame": _react_picture(prop, sp)
-		"plant":         _react_plant(prop, sp)
 		"awning":        _react_awning(prop, sp)
 		"flower_pot":    _react_flower(prop, sp)
 		_:               _react_default(prop, sp)
@@ -491,19 +495,10 @@ func _open_reveal(reveal: Dictionary) -> void:
 		if row != null and row.text.begins_with("? "):
 			row.text = row.text.substr(2)
 
-# ============ Cursor parallax + lantern flicker ============
+# ============ Lantern flicker (ambient) ============
 
 func _process(delta: float) -> void:
-	if parallax != null:
-		var viewport := get_viewport()
-		if viewport != null:
-			var size := viewport.get_visible_rect().size
-			var mouse := viewport.get_mouse_position()
-			var offset := Vector2(
-				(mouse.x / size.x - 0.5) * -parallax_strength,
-				(mouse.y / size.y - 0.5) * -parallax_strength * 0.6
-			)
-			parallax.scroll_offset = parallax.scroll_offset.lerp(offset, 0.15)
+	# Parallax removed — single flat-iso background, no per-layer scroll.
 	if lantern_glow != null:
 		_flicker_t += delta * 9.0
 		var n := sin(_flicker_t) * 0.5 + sin(_flicker_t * 2.3 + 1.0) * 0.3
