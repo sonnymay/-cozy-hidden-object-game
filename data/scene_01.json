@@ -1,14 +1,26 @@
 {
   "scene_id": "scene_01",
   "background": "res://assets/backgrounds/scene_01/placeholder.png",
+  "reveals": [
+    { "id": "wardrobe", "type": "swing_doors",   "position": [240, 480], "size": [220, 280], "label": "Open wardrobe" },
+    { "id": "rug",      "type": "lift",          "position": [820, 980], "size": [320, 120], "label": "Lift rug" },
+    { "id": "teapot",   "type": "lift_lid",      "position": [1420, 220], "size": [180, 200], "label": "Lift teapot lid" }
+  ],
   "hidden_objects": [
-    { "id": "teacup",     "display_name": "Teacup",       "sprite": "res://assets/objects/scene_01/obj_teacup.png",     "position": [320, 280],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "key",        "display_name": "Brass Key",    "sprite": "res://assets/objects/scene_01/obj_key.png",        "position": [560, 420],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "yarn",       "display_name": "Ball of Yarn", "sprite": "res://assets/objects/scene_01/obj_yarn.png",       "position": [820, 700],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "candle",     "display_name": "Candle",       "sprite": "res://assets/objects/scene_01/obj_candle.png",     "position": [1080, 320], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "letter",     "display_name": "Letter",       "sprite": "res://assets/objects/scene_01/obj_letter.png",     "position": [1340, 540], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "mushroom",   "display_name": "Mushroom",     "sprite": "res://assets/objects/scene_01/obj_mushroom.png",   "position": [1620, 760], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "spectacles", "display_name": "Spectacles",   "sprite": "res://assets/objects/scene_01/obj_spectacles.png", "position": [480, 820],  "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] },
-    { "id": "sock",       "display_name": "Tiny Sock",    "sprite": "res://assets/objects/scene_01/obj_sock.png",       "position": [1180, 880], "polygon": [[-64,-64],[64,-64],[64,64],[-64,64]] }
+    { "id": "teacup",     "display_name": "Teacup",       "sprite": "res://assets/objects/scene_01/obj_teacup.png",     "position": [180, 480], "in_reveal": "wardrobe" },
+    { "id": "key",        "display_name": "Brass Key",    "sprite": "res://assets/objects/scene_01/obj_key.png",        "position": [300, 510], "in_reveal": "wardrobe" },
+    { "id": "yarn",       "display_name": "Ball of Yarn", "sprite": "res://assets/objects/scene_01/obj_yarn.png",       "position": [820, 700] },
+    { "id": "candle",     "display_name": "Candle",       "sprite": "res://assets/objects/scene_01/obj_candle.png",     "position": [1080, 320] },
+    { "id": "letter",     "display_name": "Letter",       "sprite": "res://assets/objects/scene_01/obj_letter.png",     "position": [1340, 540] },
+    { "id": "mushroom",   "display_name": "Mushroom",     "sprite": "res://assets/objects/scene_01/obj_mushroom.png",   "position": [1620, 760] },
+    { "id": "spectacles", "display_name": "Spectacles",   "sprite": "res://assets/objects/scene_01/obj_spectacles.png", "position": [620, 820] },
+    { "id": "sock",       "display_name": "Tiny Sock",    "sprite": "res://assets/objects/scene_01/obj_sock.png",       "position": [1180, 880] },
+    { "id": "thimble",    "display_name": "Thimble",      "sprite": "res://assets/objects/scene_01/obj_thimble.png",    "position": [780, 470] },
+    { "id": "mouse",      "display_name": "Tiny Mouse",   "sprite": "res://assets/objects/scene_01/obj_mouse.png",      "position": [820, 980], "in_reveal": "rug" },
+    { "id": "pinecone",   "display_name": "Pinecone",     "sprite": "res://assets/objects/scene_01/obj_pinecone.png",   "position": [1500, 880] },
+    { "id": "snail",      "display_name": "Snail",        "sprite": "res://assets/objects/scene_01/obj_snail.png",      "position": [460, 640] },
+    { "id": "ribbon",     "display_name": "Ribbon",       "sprite": "res://assets/objects/scene_01/obj_ribbon.png",     "position": [1280, 700] },
+    { "id": "postcard",   "display_name": "Postcard",     "sprite": "res://assets/objects/scene_01/obj_postcard.png",   "position": [1420, 220], "in_reveal": "teapot" },
+    { "id": "button",     "display_name": "Button",       "sprite": "res://assets/objects/scene_01/obj_button.png",     "position": [960, 540] }
   ]
 }

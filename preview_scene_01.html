@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Cozy HOG — Scene 01 ALIVE Preview</title>
+<title>Cozy HOG — Scene 01 ALIVE Preview v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --cream: #fcf4e6;
     --peach: #fadcc8;
     --sage: #c8d8c0;
     --rose: #e6c8c4;
+    --wood: #8c6e5a;
     --ink: #4a3a30;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; background: #1c1814; color: var(--ink);
-    font-family: -apple-system, "Avenir Next", "Segoe UI", sans-serif;
+    font-family: "Quicksand", -apple-system, "Segoe UI", sans-serif;
     overflow: hidden; height: 100%;
   }
   #stage-wrap { position: fixed; inset: 0; display: grid; place-items: center; }
@@ -23,14 +27,33 @@
     transform-origin: center; box-shadow: 0 0 60px rgba(0,0,0,0.6);
     overflow: hidden; background: #2a1f17;
   }
-  /* ============ LAYER 1: ambient ============ */
-  /* Background — cursor parallax via transform */
-  #bg {
-    position: absolute; inset: -30px;
+
+  /* ============ FAKED 5-LAYER PARALLAX ============
+     Real Godot version has 5 separate bg PNGs. Here we approximate by
+     stacking the single bg at different scales + a vignette + a fog +
+     a near-overlay tint. Cursor parallax moves each layer differently. */
+  .par {
+    position: absolute; inset: -60px;
     background: url('assets/_style_exploration/bg_throwaway_01.png') center/cover no-repeat;
     will-change: transform;
-    transition: transform 0.25s cubic-bezier(.2,.7,.3,1);
+    transition: transform 0.35s cubic-bezier(.2,.7,.3,1);
+    pointer-events: none;
   }
+  /* Sky/far layer — slightly desaturated, scaled up, behind */
+  #par-sky  { filter: blur(2px) saturate(0.75) brightness(1.05); transform: scale(1.10); }
+  /* Mid layer — the real bg, primary visual */
+  #par-mid  { transform: scale(1.05); }
+  /* Near tint — adds peach warmth in foreground, semi-transparent */
+  #par-near {
+    background: radial-gradient(ellipse at 50% 90%, rgba(250, 200, 170, 0.18), transparent 60%);
+    transform: scale(1.0);
+  }
+  /* Overlay — slight vignette */
+  #par-overlay {
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%);
+    transform: scale(1.0);
+  }
+
   /* Sun shaft pulsing in from upper-left window */
   #sun-shaft {
     position: absolute; left: -100px; top: -200px;
@@ -38,14 +61,25 @@
     background: linear-gradient(165deg, rgba(255, 230, 170, 0.35) 0%, rgba(255, 220, 150, 0.18) 30%, transparent 60%);
     transform: rotate(-12deg); transform-origin: top left;
     animation: sunpulse 7s ease-in-out infinite;
+    pointer-events: none; mix-blend-mode: screen;
+  }
+  @keyframes sunpulse { 0%, 100% { opacity: 0.65; } 50% { opacity: 1.0; } }
+
+  /* Wind sway on a transparent overlay near the window — simulates curtain wind shader */
+  #wind-overlay {
+    position: absolute; left: 60px; top: 80px;
+    width: 280px; height: 380px;
+    background: linear-gradient(180deg, rgba(250, 200, 180, 0.18), transparent);
+    transform-origin: top center;
+    animation: wind-sway 5s ease-in-out infinite;
     pointer-events: none;
-    mix-blend-mode: screen;
   }
-  @keyframes sunpulse {
-    0%, 100% { opacity: 0.7; }
-    50%      { opacity: 1.0; }
+  @keyframes wind-sway {
+    0%, 100% { transform: skewX(-2deg); }
+    50%      { transform: skewX(2deg);  }
   }
-  /* Drifting dust motes in the sun area */
+
+  /* Drifting dust motes */
   .mote {
     position: absolute; width: 6px; height: 6px;
     background: radial-gradient(circle, rgba(255,240,200,0.9), transparent 70%);
@@ -58,7 +92,7 @@
     10%  { opacity: 1; }
     100% { transform: translate(180px, 360px) scale(1.1); opacity: 0; }
   }
-  /* Candle / lantern flicker hotspot — over the right-side shelving */
+  /* Lantern flicker hotspot */
   #candle-glow {
     position: absolute; left: 1620px; top: 320px;
     width: 240px; height: 240px;
@@ -67,29 +101,19 @@
     pointer-events: none; mix-blend-mode: screen;
     animation: flicker 0.18s steps(2, end) infinite;
   }
-  @keyframes flicker {
-    0%, 100% { opacity: 0.9; }
-    50%      { opacity: 0.55; }
-  }
+  @keyframes flicker { 0%, 100% { opacity: 0.9; } 50% { opacity: 0.55; } }
 
-  /* ============ LAYER 2: interactive delight props (invisible hotspots over bg) ============ */
+  /* ============ LAYER 2 — interactive prop hotspots ============ */
   .prop {
-    position: absolute;
-    transform: translate(-50%, -50%);
+    position: absolute; transform: translate(-50%, -50%);
     cursor: pointer;
-    /* invisible by default; show subtle hover ring */
     border: 2px dashed transparent;
     border-radius: 12px;
     transition: border-color 0.2s;
   }
   body.debug-props .prop { border-color: rgba(255, 220, 100, 0.6); }
   .prop:hover { border-color: rgba(255, 230, 130, 0.85); }
-  /* Each prop is a hit-box; the visual reaction overlays via JS */
-  .prop-effect {
-    position: absolute; transform: translate(-50%, -50%);
-    pointer-events: none;
-  }
-  /* Steam puff above kettle/mixer */
+  .prop-effect { position: absolute; transform: translate(-50%, -50%); pointer-events: none; }
   .steam {
     width: 100px; height: 150px;
     background: radial-gradient(ellipse at 50% 80%, rgba(255,255,255,0.7), transparent 70%);
@@ -101,11 +125,7 @@
     30%  { opacity: 0.9; }
     100% { opacity: 0; transform: translate(-50%, -160%) scale(1.4); }
   }
-  /* Wobble for clickable visible bg elements */
-  .wobble-overlay {
-    width: 120px; height: 120px;
-    animation: wobble 0.6s ease;
-  }
+  .wobble-overlay { width: 120px; height: 120px; animation: wobble 0.6s ease; }
   @keyframes wobble {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     20% { transform: translate(-50%, -50%) rotate(-6deg); }
@@ -113,30 +133,24 @@
     80% { transform: translate(-50%, -50%) rotate(-2deg); }
     100% { transform: translate(-50%, -50%) rotate(0deg); }
   }
-  /* Curtain sway: a peach-tinted overlay near window */
   #curtain-overlay {
     position: absolute; left: 80px; top: 100px;
     width: 240px; height: 320px;
     background: linear-gradient(180deg, rgba(250, 220, 200, 0.35), rgba(250, 220, 200, 0.05));
-    transform-origin: top center;
-    pointer-events: none;
+    transform-origin: top center; pointer-events: none;
     transition: transform 1.5s cubic-bezier(.4,.0,.2,1);
   }
   #curtain-overlay.swept { transform: skewX(-20deg) translateX(-40px); }
-
-  /* Light flare for lantern */
   .flare {
     width: 320px; height: 320px;
     background: radial-gradient(circle, rgba(255, 220, 150, 0.9), transparent 60%);
-    animation: flare 1.2s ease-out forwards;
-    mix-blend-mode: screen;
+    animation: flare 1.2s ease-out forwards; mix-blend-mode: screen;
   }
   @keyframes flare {
     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
     30% { opacity: 1; }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
   }
-  /* Pop-sparkle */
   .pop-spark {
     width: 160px; height: 160px;
     background: radial-gradient(circle, rgba(255,240,180,0.95), transparent 70%);
@@ -147,14 +161,12 @@
     40% { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
     100% { opacity: 0; transform: translate(-50%, -50%) scale(2.0); }
   }
-  /* Floating reaction caption */
   .caption {
     position: absolute; transform: translate(-50%, -50%);
     color: white; font-size: 18px; font-weight: 600;
     text-shadow: 0 2px 4px rgba(0,0,0,0.85);
-    pointer-events: none;
+    pointer-events: none; white-space: nowrap;
     animation: floatup 1.4s ease-out forwards;
-    white-space: nowrap;
   }
   @keyframes floatup {
     0% { opacity: 0; transform: translate(-50%, 20px); }
@@ -162,39 +174,87 @@
     100% { opacity: 0; transform: translate(-50%, -80px); }
   }
 
-  /* ============ LAYER 3: reveal interaction (wardrobe doors over green cabinet at left) ============ */
-  #wardrobe {
-    position: absolute; left: 130px; top: 240px;
-    width: 210px; height: 240px;
-    transform: translate(-50%, 0);
+  /* ============ LAYER 3 — reveal interactions (generic) ============ */
+  .reveal {
+    position: absolute; transform: translate(-50%, -50%);
     cursor: pointer;
     border: 2px dashed transparent;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: border-color 0.2s;
   }
-  #wardrobe:hover { border-color: rgba(255, 230, 130, 0.85); }
-  body.debug-props #wardrobe { border-color: rgba(255, 220, 100, 0.6); }
-  #wardrobe.opened { cursor: default; }
-  .wardrobe-door {
-    position: absolute; top: 0; width: 50%; height: 100%;
-    background: linear-gradient(180deg, rgba(120, 140, 110, 0.95), rgba(80, 100, 75, 0.95));
+  .reveal:hover:not(.opened) { border-color: rgba(255, 230, 130, 0.95); }
+  body.debug-props .reveal { border-color: rgba(255, 180, 80, 0.7); }
+  .reveal.opened { cursor: default; }
+  /* Wardrobe doors */
+  .reveal[data-type="swing_doors"] {
+    background: linear-gradient(180deg, rgba(120, 140, 110, 0.92), rgba(80, 100, 75, 0.92));
     border: 3px solid rgba(60, 80, 55, 0.95);
-    transition: transform 0.9s cubic-bezier(.4,0,.2,1);
-    pointer-events: none;
+    border-radius: 6px;
+    overflow: visible;
   }
-  .wardrobe-door.left  { left: 0;  transform-origin: left center; }
-  .wardrobe-door.right { right: 0; transform-origin: right center; }
-  #wardrobe.opened .wardrobe-door.left  { transform: perspective(600px) rotateY(-110deg); }
-  #wardrobe.opened .wardrobe-door.right { transform: perspective(600px) rotateY( 110deg); }
-  .wardrobe-handle {
+  .reveal[data-type="swing_doors"] .door {
+    position: absolute; top: 0; width: 50%; height: 100%;
+    background: inherit;
+    border-right: 2px solid rgba(60, 80, 55, 0.95);
+    transition: transform 0.9s cubic-bezier(.4,0,.2,1);
+    transform-origin: left center;
+  }
+  .reveal[data-type="swing_doors"] .door.right { left: 50%; transform-origin: right center; border-right: none; border-left: 2px solid rgba(60, 80, 55, 0.95); }
+  .reveal[data-type="swing_doors"].opened .door.left  { transform: perspective(600px) rotateY(-110deg); }
+  .reveal[data-type="swing_doors"].opened .door.right { transform: perspective(600px) rotateY( 110deg); }
+  .reveal[data-type="swing_doors"] .handle {
     position: absolute; top: 50%; width: 6px; height: 18px;
-    background: #f0c878; border-radius: 3px;
+    background: #f0c878; border-radius: 3px; transform: translateY(-50%);
+  }
+  .reveal[data-type="swing_doors"] .door.left  .handle { right: 8px; }
+  .reveal[data-type="swing_doors"] .door.right .handle { left: 8px; }
+  /* Rug — flat brown rectangle, lifts on click */
+  .reveal[data-type="lift"] {
+    background: linear-gradient(180deg, rgba(180, 110, 100, 0.82), rgba(140, 80, 75, 0.82));
+    border: 3px solid rgba(110, 70, 60, 0.95);
+    border-radius: 8px;
+    transform-origin: top center;
+    transition: transform 0.7s cubic-bezier(.4,0,.2,1);
+  }
+  .reveal[data-type="lift"].opened {
+    transform: translate(-50%, -50%) perspective(800px) rotateX(-65deg) translateY(-40px);
+  }
+  /* Teapot lid */
+  .reveal[data-type="lift_lid"] {
+    background: linear-gradient(180deg, rgba(190, 170, 220, 0.9), rgba(130, 110, 170, 0.9));
+    border: 3px solid rgba(90, 70, 130, 0.95);
+    border-radius: 100px 100px 12px 12px;
+  }
+  .reveal[data-type="lift_lid"] .lid {
+    position: absolute; left: 0; right: 0; top: 0; height: 40%;
+    background: inherit;
+    border-radius: 100px 100px 0 0;
+    border-bottom: 2px solid rgba(90, 70, 130, 0.95);
+    transition: transform 0.7s cubic-bezier(.4,0,.2,1);
+    transform-origin: center bottom;
+  }
+  .reveal[data-type="lift_lid"].opened .lid {
+    transform: translateY(-50px) rotate(15deg);
+  }
+  .reveal[data-type="lift_lid"] .spout {
+    position: absolute; right: -18px; top: 50%; width: 24px; height: 28px;
+    background: inherit;
+    border: 3px solid rgba(90, 70, 130, 0.95);
+    border-radius: 0 12px 12px 0;
     transform: translateY(-50%);
   }
-  .wardrobe-door.left  .wardrobe-handle { right: 8px; }
-  .wardrobe-door.right .wardrobe-handle { left: 8px; }
+  .reveal-label {
+    position: absolute; left: 50%; bottom: -28px;
+    transform: translateX(-50%);
+    color: white; font-size: 14px; font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.5); padding: 3px 10px; border-radius: 6px;
+    white-space: nowrap; pointer-events: none;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .reveal:hover:not(.opened) .reveal-label { opacity: 1; }
 
-  /* ============ Hidden objects (clickable sprites) ============ */
+  /* ============ Hidden objects ============ */
   .obj {
     position: absolute; width: 128px; height: 128px;
     transform: translate(-50%, -50%);
@@ -202,33 +262,58 @@
     transition: transform 0.15s ease, opacity 0.5s ease;
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
   }
-  .obj.hidden-in-wardrobe { opacity: 0; pointer-events: none; transition: opacity 0.6s ease 0.4s; }
-  .obj.hidden-in-wardrobe.revealed { opacity: 1; pointer-events: auto; }
+  .obj.hidden-in-reveal { opacity: 0; pointer-events: none; transition: opacity 0.6s ease 0.4s; }
+  .obj.hidden-in-reveal.revealed { opacity: 1; pointer-events: auto; }
   .obj:hover:not(.found) { transform: translate(-50%, -50%) scale(1.08); }
-  .obj.found {
-    pointer-events: none;
-    animation: vanish 0.5s ease forwards;
+  .obj.found { pointer-events: none; animation: vanish 0.5s ease forwards; }
+  @keyframes vanish { to { opacity: 0; transform: translate(-50%, -50%) scale(1.4); } }
+
+  /* ============ MASCOT ============ */
+  #mascot {
+    position: absolute; right: 40px; bottom: 40px;
+    width: 140px; height: 140px;
+    background: radial-gradient(circle at 50% 40%, #f4ddb8, #d8a878 70%);
+    border: 3px solid #8c6e5a; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    animation: bob 3.5s ease-in-out infinite;
+    z-index: 60;
   }
-  @keyframes vanish {
-    to { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
   }
+  #mascot::after {
+    content: ""; position: absolute; left: 50%; top: -16px;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-bottom-color: #f4ddb8;
+    opacity: 0; animation: chirp 6s ease-in-out infinite;
+  }
+  @keyframes chirp { 0%, 80%, 100% { opacity: 0; } 85% { opacity: 1; } }
 
   /* ============ HUD ============ */
   #hud-panel {
     position: absolute; left: 16px; top: 16px;
-    width: 264px; min-height: 380px;
-    background: rgba(252, 244, 230, 0.92);
-    border: 2px solid #8c6e5a; border-radius: 14px;
+    width: 280px; max-height: 720px;
+    background: rgba(252, 244, 230, 0.94);
+    border: 2px solid var(--wood); border-radius: 14px;
     padding: 14px 18px; z-index: 50;
+    font-family: "Quicksand", sans-serif;
   }
-  #hud-panel h2 { margin: 0 0 10px; font-size: 26px; font-weight: 600; }
-  #obj-list { margin: 0; padding: 0; list-style: none; }
-  #obj-list li { padding: 4px 0; font-size: 22px; }
+  #hud-panel h2 { margin: 0 0 8px; font-size: 24px; font-weight: 700; }
+  #hud-progress { font-size: 14px; color: #7c6c5c; margin-bottom: 6px; }
+  #obj-list {
+    margin: 0; padding: 0; list-style: none;
+    max-height: 600px; overflow-y: auto;
+  }
+  #obj-list li { padding: 3px 0; font-size: 18px; font-weight: 500; }
   #obj-list li.found { color: #a09b95; text-decoration: line-through; }
   #obj-list li::before { content: "• "; }
-  #obj-list li.in-wardrobe { font-style: italic; color: #6c5a4a; }
-  #obj-list li.in-wardrobe::after { content: " (hidden)"; font-size: 14px; opacity: 0.7; }
-  #obj-list li.in-wardrobe.revealed::after { content: ""; }
+  #obj-list li.in-reveal { font-style: italic; color: #6c5a4a; }
+  #obj-list li.in-reveal::after { content: " (hidden)"; font-size: 12px; opacity: 0.7; }
+  #obj-list li.in-reveal.revealed::after { content: ""; }
 
   #hint-bar {
     position: absolute; left: 16px; bottom: 24px; z-index: 50;
@@ -236,15 +321,15 @@
   }
   #hint-btn {
     background: var(--peach); border: 2px solid #a3735a; border-radius: 8px;
-    padding: 10px 28px; font-size: 22px; font-weight: 600; color: var(--ink);
-    cursor: pointer; font-family: inherit;
+    padding: 10px 28px; font-size: 20px; font-weight: 600; color: var(--ink);
+    cursor: pointer; font-family: "Quicksand", sans-serif;
   }
   #hint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  #hint-label { font-size: 18px; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
+  #hint-label { font-size: 16px; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,0.9); }
 
   #prop-counter {
-    position: absolute; right: 16px; bottom: 24px; z-index: 50;
-    font-size: 18px; color: var(--cream);
+    position: absolute; left: 320px; bottom: 24px; z-index: 50;
+    font-size: 16px; color: var(--cream);
     text-shadow: 0 2px 6px rgba(0,0,0,0.9);
     background: rgba(0,0,0,0.45); padding: 8px 14px; border-radius: 8px;
   }
@@ -257,15 +342,15 @@
   }
   #completion.show { display: flex; }
   #completion-card {
-    background: var(--cream); border: 3px solid #8c6e5a; border-radius: 18px;
+    background: var(--cream); border: 3px solid var(--wood); border-radius: 18px;
     padding: 40px 60px; text-align: center; min-width: 560px;
   }
   #completion-card h1 { margin: 0 0 16px; font-size: 48px; }
-  #completion-card p { font-size: 24px; margin: 8px 0; }
+  #completion-card p { font-size: 22px; margin: 8px 0; }
   #replay-btn {
-    margin-top: 28px; padding: 14px 36px; font-size: 22px; font-weight: 600;
+    margin-top: 28px; padding: 14px 36px; font-size: 22px; font-weight: 700;
     background: var(--peach); border: 2px solid #a3735a; border-radius: 10px;
-    cursor: pointer; font-family: inherit; color: var(--ink);
+    cursor: pointer; font-family: "Quicksand", sans-serif; color: var(--ink);
   }
 
   /* Help overlay */
@@ -275,40 +360,43 @@
     border-radius: 8px; font-size: 13px; max-width: 320px; line-height: 1.45;
   }
   #help b { font-size: 14px; }
-  #help kbd {
-    background: #333; padding: 1px 6px; border-radius: 4px; font-size: 11px;
-  }
+  #help kbd { background: #333; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
 </style>
 </head>
 <body>
 
 <div id="help">
-  <b>Cozy HOG — ALIVE preview</b><br>
-  • Find 8 objects (some are hidden inside the green wardrobe — click it)<br>
-  • Click stuff: mixer, awning, curtain, flower pot, lantern shelf — they react<br>
-  • Move your mouse to feel the cursor parallax<br>
+  <b>Cozy HOG — ALIVE preview v3</b><br>
+  • Find <b>15</b> objects — some hidden behind 3 reveals (wardrobe, rug, teapot)<br>
+  • Click props (mixer, awning, curtain, flowers, lantern, plant) — they react<br>
+  • Move your mouse to feel the multi-layer parallax<br>
   • <kbd>D</kbd> show hit-boxes &nbsp; <kbd>Esc</kbd> hide this
 </div>
 
 <div id="stage-wrap">
   <div id="stage">
-    <div id="bg"></div>
+    <!-- Faked 5-layer parallax (single bg, multiple transforms) -->
+    <div class="par" id="par-sky"></div>
+    <div class="par" id="par-mid"></div>
+    <div class="par" id="par-near"></div>
+    <div class="par" id="par-overlay"></div>
 
-    <!-- Layer 1: ambient -->
+    <!-- Layer 1 ambient -->
     <div id="sun-shaft"></div>
+    <div id="wind-overlay"></div>
     <div id="motes-container"></div>
     <div id="candle-glow"></div>
     <div id="curtain-overlay"></div>
 
-    <!-- Layer 3: reveal -->
-    <div id="wardrobe">
-      <div class="wardrobe-door left"><div class="wardrobe-handle"></div></div>
-      <div class="wardrobe-door right"><div class="wardrobe-handle"></div></div>
-    </div>
+    <!-- Layer 3 reveals injected here -->
+
+    <!-- Mascot -->
+    <div id="mascot" title="Hello!">🐦</div>
 
     <!-- HUD -->
     <div id="hud-panel">
       <h2>Find:</h2>
+      <div id="hud-progress">0 / 15 found</div>
       <ul id="obj-list"></ul>
     </div>
     <div id="hint-bar">
@@ -329,29 +417,39 @@
 </div>
 
 <script>
-// ============ DATA ============
-// 2 items are hidden INSIDE the wardrobe (Layer 3 reveal). Rest are placed in the open scene.
+// ============ DATA — mirrors data/scene_01.json ============
 const SCENE = {
+  reveals: [
+    { id: "wardrobe", type: "swing_doors", position: [240, 480], size: [220, 280], label: "Open wardrobe" },
+    { id: "rug",      type: "lift",        position: [820, 980], size: [320, 120], label: "Lift rug" },
+    { id: "teapot",   type: "lift_lid",    position: [1420, 220], size: [180, 200], label: "Lift teapot lid" }
+  ],
   hidden_objects: [
-    { id: "teacup",     display_name: "Teacup",       sprite: "assets/objects/scene_01/obj_teacup.png",     position: [180, 380], in_wardrobe: true  },
-    { id: "key",        display_name: "Brass Key",    sprite: "assets/objects/scene_01/obj_key.png",        position: [110, 410], in_wardrobe: true  },
-    { id: "yarn",       display_name: "Ball of Yarn", sprite: "assets/objects/scene_01/obj_yarn.png",       position: [820, 700], in_wardrobe: false },
-    { id: "candle",     display_name: "Candle",       sprite: "assets/objects/scene_01/obj_candle.png",     position: [1080, 320], in_wardrobe: false },
-    { id: "letter",     display_name: "Letter",       sprite: "assets/objects/scene_01/obj_letter.png",     position: [1340, 540], in_wardrobe: false },
-    { id: "mushroom",   display_name: "Mushroom",     sprite: "assets/objects/scene_01/obj_mushroom.png",   position: [1620, 760], in_wardrobe: false },
-    { id: "spectacles", display_name: "Spectacles",   sprite: "assets/objects/scene_01/obj_spectacles.png", position: [620, 820], in_wardrobe: false },
-    { id: "sock",       display_name: "Tiny Sock",    sprite: "assets/objects/scene_01/obj_sock.png",       position: [1180, 880], in_wardrobe: false }
+    { id: "teacup",     display_name: "Teacup",       sprite: "assets/objects/scene_01/obj_teacup.png",     position: [180, 480], in_reveal: "wardrobe" },
+    { id: "key",        display_name: "Brass Key",    sprite: "assets/objects/scene_01/obj_key.png",        position: [300, 510], in_reveal: "wardrobe" },
+    { id: "yarn",       display_name: "Ball of Yarn", sprite: "assets/objects/scene_01/obj_yarn.png",       position: [820, 700] },
+    { id: "candle",     display_name: "Candle",       sprite: "assets/objects/scene_01/obj_candle.png",     position: [1080, 320] },
+    { id: "letter",     display_name: "Letter",       sprite: "assets/objects/scene_01/obj_letter.png",     position: [1340, 540] },
+    { id: "mushroom",   display_name: "Mushroom",     sprite: "assets/objects/scene_01/obj_mushroom.png",   position: [1620, 760] },
+    { id: "spectacles", display_name: "Spectacles",   sprite: "assets/objects/scene_01/obj_spectacles.png", position: [620, 820] },
+    { id: "sock",       display_name: "Tiny Sock",    sprite: "assets/objects/scene_01/obj_sock.png",       position: [1180, 880] },
+    { id: "thimble",    display_name: "Thimble",      sprite: "assets/objects/scene_01/obj_thimble.png",    position: [780, 470] },
+    { id: "mouse",      display_name: "Tiny Mouse",   sprite: "assets/objects/scene_01/obj_mouse.png",      position: [820, 980], in_reveal: "rug" },
+    { id: "pinecone",   display_name: "Pinecone",     sprite: "assets/objects/scene_01/obj_pinecone.png",   position: [1500, 880] },
+    { id: "snail",      display_name: "Snail",        sprite: "assets/objects/scene_01/obj_snail.png",      position: [460, 640] },
+    { id: "ribbon",     display_name: "Ribbon",       sprite: "assets/objects/scene_01/obj_ribbon.png",     position: [1280, 700] },
+    { id: "postcard",   display_name: "Postcard",     sprite: "assets/objects/scene_01/obj_postcard.png",   position: [1420, 220], in_reveal: "teapot" },
+    { id: "button",     display_name: "Button",       sprite: "assets/objects/scene_01/obj_button.png",     position: [960, 540] }
   ]
 };
 
-// Layer 2 — interactive delight props (positions chosen to overlay visible bg elements)
 const PROPS = [
-  { id: "mixer",   pos: [1230, 230], size: [180, 220], reaction: "shake-and-steam",  caption: "*whirr*"     },
-  { id: "awning",  pos: [1620, 110], size: [380, 180], reaction: "wobble",            caption: "*flutter*"   },
-  { id: "curtain", pos: [200, 280],  size: [240, 360], reaction: "curtain-sway",      caption: "*swish*"     },
-  { id: "flower",  pos: [1740, 980], size: [240, 200], reaction: "sparkle-and-pop",   caption: "*rustle*"    },
-  { id: "lantern", pos: [1620, 320], size: [200, 200], reaction: "flare",             caption: "*flare*"     },
-  { id: "plant",   pos: [120, 130],  size: [180, 180], reaction: "wobble-leaves",     caption: "*sway*"      },
+  { id: "mixer",   pos: [1230, 230], size: [180, 220], reaction: "shake-and-steam", caption: "*whirr*"   },
+  { id: "awning",  pos: [1620, 110], size: [380, 180], reaction: "wobble",           caption: "*flutter*" },
+  { id: "curtain", pos: [200, 280],  size: [240, 360], reaction: "curtain-sway",     caption: "*swish*"   },
+  { id: "flower",  pos: [1740, 980], size: [240, 200], reaction: "sparkle-and-pop",  caption: "*rustle*"  },
+  { id: "lantern", pos: [1620, 320], size: [200, 200], reaction: "flare",            caption: "*flare*"   },
+  { id: "plant",   pos: [120, 130],  size: [180, 180], reaction: "wobble-leaves",    caption: "*sway*"    },
 ];
 
 const HINTS_PER_SCENE = 3;
@@ -359,26 +457,31 @@ const HINT_COOLDOWN_MS = 60_000;
 
 const state = {
   found: new Set(),
+  revealsOpen: new Set(),
   hintsRemaining: HINTS_PER_SCENE,
   hintsUsed: 0,
   cooldownEndsAt: 0,
-  wardrobeOpen: false,
   propsTouched: new Set(),
 };
 
 const stage = document.getElementById("stage");
-const bg = document.getElementById("bg");
+const parLayers = [
+  { el: document.getElementById("par-sky"),     factor: 0.10 },
+  { el: document.getElementById("par-mid"),     factor: 0.40 },
+  { el: document.getElementById("par-near"),    factor: 0.80 },
+  { el: document.getElementById("par-overlay"), factor: 1.00 },
+];
 const list = document.getElementById("obj-list");
+const progress = document.getElementById("hud-progress");
 const hintBtn = document.getElementById("hint-btn");
 const hintLabel = document.getElementById("hint-label");
 const completion = document.getElementById("completion");
 const completeStats = document.getElementById("complete-stats");
-const wardrobeEl = document.getElementById("wardrobe");
 const curtainOverlay = document.getElementById("curtain-overlay");
 const propCountEl = document.getElementById("prop-count");
 document.getElementById("prop-total").textContent = PROPS.length;
 
-// ============ AUDIO (synthesized — no external assets needed) ============
+// ============ AUDIO ============
 let audioCtx;
 function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -412,21 +515,35 @@ function thud(freq = 240, dur = 0.25) {
 function whoosh() {
   ensureAudio();
   const t = audioCtx.currentTime;
-  const bufferSize = audioCtx.sampleRate * 0.45;
-  const buf = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const bufSize = audioCtx.sampleRate * 0.45;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
   const data = buf.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
   const src = audioCtx.createBufferSource(); src.buffer = buf;
   const filter = audioCtx.createBiquadFilter(); filter.type = "bandpass"; filter.frequency.value = 1200;
   const g = audioCtx.createGain(); g.gain.value = 0.12;
   src.connect(filter).connect(g).connect(audioCtx.destination);
   src.start(t);
 }
+function creak() {
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(160, t);
+  o.frequency.linearRampToValueAtTime(120, t + 0.6);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.08, t + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t); o.stop(t + 0.7);
+}
 
-// ============ LAYER 1: motes ============
+// ============ Ambient ============
 function spawnMotes() {
   const container = document.getElementById("motes-container");
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 22; i++) {
     const m = document.createElement("div");
     m.className = "mote";
     m.style.left = (Math.random() * 700) + "px";
@@ -437,17 +554,21 @@ function spawnMotes() {
   }
 }
 
-// Cursor parallax: shift bg up to ±15px based on cursor offset from center
+// Multi-layer parallax — each layer shifts by its own factor
 function setupParallax() {
   stage.addEventListener("mousemove", (e) => {
     const rect = stage.getBoundingClientRect();
-    const nx = (e.clientX - rect.left) / rect.width  - 0.5; // -0.5 .. 0.5
+    const nx = (e.clientX - rect.left) / rect.width  - 0.5;
     const ny = (e.clientY - rect.top)  / rect.height - 0.5;
-    bg.style.transform = `translate(${-nx * 30}px, ${-ny * 20}px) scale(1.04)`;
+    parLayers.forEach(({ el, factor }) => {
+      const shift = factor * 40;
+      // Keep each layer's own base scale (set in CSS), just add translate
+      el.style.transform = `translate(${-nx * shift}px, ${-ny * shift * 0.6}px) scale(${el.id === "par-sky" ? 1.10 : el.id === "par-mid" ? 1.05 : 1.0})`;
+    });
   });
 }
 
-// ============ LAYER 2: interactive props ============
+// ============ Layer 2 props ============
 function setupProps() {
   PROPS.forEach(p => {
     const el = document.createElement("div");
@@ -461,99 +582,103 @@ function setupProps() {
     stage.appendChild(el);
   });
 }
-
 function triggerProp(p) {
   state.propsTouched.add(p.id);
   propCountEl.textContent = state.propsTouched.size;
   spawnCaption(p.pos[0], p.pos[1] - p.size[1]/2 - 20, p.caption);
   switch (p.reaction) {
     case "shake-and-steam":
-      shakeBgRegion(p.pos, p.size);
       spawnEffect("steam", p.pos[0], p.pos[1] - p.size[1]/2);
-      thud(180, 0.2);
-      break;
+      thud(180, 0.2); break;
     case "wobble":
     case "wobble-leaves":
       spawnEffect("wobble-overlay", p.pos[0], p.pos[1]);
-      whoosh();
-      break;
+      whoosh(); break;
     case "curtain-sway":
-      curtainOverlay.classList.add("swept");
-      whoosh();
-      setTimeout(() => curtainOverlay.classList.remove("swept"), 1500);
-      break;
+      curtainOverlay.classList.add("swept"); whoosh();
+      setTimeout(() => curtainOverlay.classList.remove("swept"), 1500); break;
     case "sparkle-and-pop":
-      spawnEffect("pop-spark", p.pos[0], p.pos[1]);
-      chime();
-      break;
+      spawnEffect("pop-spark", p.pos[0], p.pos[1]); chime(); break;
     case "flare":
-      spawnEffect("flare", p.pos[0], p.pos[1]);
-      thud(660, 0.15);
-      break;
+      spawnEffect("flare", p.pos[0], p.pos[1]); thud(660, 0.15); break;
   }
 }
-
 function spawnEffect(className, x, y) {
   const e = document.createElement("div");
   e.className = "prop-effect " + className;
-  e.style.left = x + "px";
-  e.style.top  = y + "px";
+  e.style.left = x + "px"; e.style.top = y + "px";
   stage.appendChild(e);
   setTimeout(() => e.remove(), 1600);
 }
 function spawnCaption(x, y, text) {
   const c = document.createElement("div");
   c.className = "caption";
-  c.style.left = x + "px";
-  c.style.top  = y + "px";
+  c.style.left = x + "px"; c.style.top = y + "px";
   c.textContent = text;
   stage.appendChild(c);
   setTimeout(() => c.remove(), 1400);
 }
 
-// Localized bg shake when mixer is clicked
-function shakeBgRegion(pos, size) {
-  bg.animate(
-    [
-      { transform: bg.style.transform || "translate(0,0) scale(1.04)" },
-      { transform: "translate(3px, 2px) scale(1.04)" },
-      { transform: "translate(-3px, -2px) scale(1.04)" },
-      { transform: "translate(2px, -2px) scale(1.04)" },
-      { transform: bg.style.transform || "translate(0,0) scale(1.04)" },
-    ],
-    { duration: 350, iterations: 1, easing: "linear" }
-  );
-}
+// ============ Layer 3 reveals (generic) ============
+function setupReveals() {
+  SCENE.reveals.forEach(r => {
+    const el = document.createElement("div");
+    el.className = "reveal";
+    el.id = "reveal_" + r.id;
+    el.dataset.type = r.type;
+    el.dataset.id = r.id;
+    el.style.left   = r.position[0] + "px";
+    el.style.top    = r.position[1] + "px";
+    el.style.width  = r.size[0] + "px";
+    el.style.height = r.size[1] + "px";
 
-// ============ LAYER 3: wardrobe reveal ============
-function setupWardrobe() {
-  wardrobeEl.addEventListener("click", () => {
-    if (state.wardrobeOpen) return;
-    state.wardrobeOpen = true;
-    wardrobeEl.classList.add("opened");
-    thud(140, 0.45);
-    setTimeout(() => {
-      // Reveal contained items
-      SCENE.hidden_objects.filter(o => o.in_wardrobe).forEach(o => {
-        const img = stage.querySelector(`.obj[data-id="${o.id}"]`);
-        if (img) img.classList.add("revealed");
-        const row = document.getElementById("row_" + o.id);
-        if (row) row.classList.add("revealed");
-      });
-    }, 600);
+    if (r.type === "swing_doors") {
+      el.innerHTML = `<div class="door left"><div class="handle"></div></div>
+                      <div class="door right"><div class="handle"></div></div>`;
+    } else if (r.type === "lift_lid") {
+      el.innerHTML = `<div class="lid"></div><div class="spout"></div>`;
+    } // lift = no inner
+
+    const lbl = document.createElement("div");
+    lbl.className = "reveal-label"; lbl.textContent = r.label;
+    el.appendChild(lbl);
+
+    el.addEventListener("click", () => openReveal(r));
+    stage.appendChild(el);
   });
 }
 
-// ============ HIDDEN OBJECTS + HUD ============
+function openReveal(r) {
+  if (state.revealsOpen.has(r.id)) return;
+  state.revealsOpen.add(r.id);
+  const el = document.getElementById("reveal_" + r.id);
+  el.classList.add("opened");
+  creak();
+  setTimeout(() => {
+    SCENE.hidden_objects.filter(o => o.in_reveal === r.id).forEach(o => {
+      const img = stage.querySelector(`.obj[data-id="${o.id}"]`);
+      if (img) img.classList.add("revealed");
+      const row = document.getElementById("row_" + o.id);
+      if (row) row.classList.add("revealed");
+    });
+  }, 500);
+}
+
+// ============ Hidden objects + HUD ============
 function buildList() {
   list.innerHTML = "";
   SCENE.hidden_objects.forEach(o => {
     const li = document.createElement("li");
     li.id = "row_" + o.id;
     li.textContent = o.display_name;
-    if (o.in_wardrobe) li.classList.add("in-wardrobe");
+    if (o.in_reveal) li.classList.add("in-reveal");
     list.appendChild(li);
   });
+  updateProgress();
+}
+
+function updateProgress() {
+  progress.textContent = `${state.found.size} / ${SCENE.hidden_objects.length} found`;
 }
 
 function placeObjects() {
@@ -561,7 +686,7 @@ function placeObjects() {
   SCENE.hidden_objects.forEach(o => {
     const img = document.createElement("img");
     img.className = "obj";
-    if (o.in_wardrobe) img.classList.add("hidden-in-wardrobe");
+    if (o.in_reveal) img.classList.add("hidden-in-reveal");
     img.src = o.sprite;
     img.alt = o.display_name;
     img.dataset.id = o.id;
@@ -574,7 +699,7 @@ function placeObjects() {
 
 function markFound(o) {
   if (state.found.has(o.id)) return;
-  if (o.in_wardrobe && !state.wardrobeOpen) return;
+  if (o.in_reveal && !state.revealsOpen.has(o.in_reveal)) return;
   state.found.add(o.id);
   spawnEffect("pop-spark", o.position[0], o.position[1]);
   const row = document.getElementById("row_" + o.id);
@@ -582,6 +707,7 @@ function markFound(o) {
   const img = stage.querySelector(`.obj[data-id="${o.id}"]`);
   if (img) { img.classList.add("found"); setTimeout(() => img.remove(), 600); }
   chime();
+  updateProgress();
   if (state.found.size >= SCENE.hidden_objects.length) {
     setTimeout(showCompletion, 800);
   }
@@ -591,7 +717,8 @@ function showCompletion() {
   completeStats.innerHTML =
     `Found ${state.found.size} / ${SCENE.hidden_objects.length}<br>` +
     `Hints used: ${state.hintsUsed}<br>` +
-    `Delight props touched: ${state.propsTouched.size} / ${PROPS.length}`;
+    `Delight props touched: ${state.propsTouched.size} / ${PROPS.length}<br>` +
+    `Reveals opened: ${state.revealsOpen.size} / ${SCENE.reveals.length}`;
   completion.classList.add("show");
 }
 
@@ -600,18 +727,17 @@ function requestHint() {
   if (now < state.cooldownEndsAt) return;
   if (state.hintsRemaining <= 0) return;
   let unfound = SCENE.hidden_objects.filter(o => !state.found.has(o.id));
-  // Don't hint items inside a closed wardrobe — hint the wardrobe instead
-  if (!state.wardrobeOpen) {
-    const wardrobeItems = unfound.filter(o => o.in_wardrobe);
-    if (wardrobeItems.length > 0) {
-      pulseAt(wardrobeEl.offsetLeft + wardrobeEl.offsetWidth/2, wardrobeEl.offsetTop + wardrobeEl.offsetHeight/2);
+  // Prefer pointing at a reveal that's still closed
+  for (const r of SCENE.reveals) {
+    if (!state.revealsOpen.has(r.id) && unfound.some(o => o.in_reveal === r.id)) {
+      pulseAt(r.position[0], r.position[1]);
       state.hintsRemaining -= 1; state.hintsUsed += 1;
       state.cooldownEndsAt = now + HINT_COOLDOWN_MS;
       updateHintLabel();
       return;
     }
   }
-  unfound = unfound.filter(o => !o.in_wardrobe || state.wardrobeOpen);
+  unfound = unfound.filter(o => !o.in_reveal || state.revealsOpen.has(o.in_reveal));
   if (unfound.length === 0) return;
   const target = unfound[Math.floor(Math.random() * unfound.length)];
   state.hintsRemaining -= 1;
@@ -651,13 +777,13 @@ function updateHintLabel() {
 
 function resetGame() {
   state.found.clear();
+  state.revealsOpen.clear();
   state.hintsRemaining = HINTS_PER_SCENE;
   state.hintsUsed = 0;
   state.cooldownEndsAt = 0;
-  state.wardrobeOpen = false;
   state.propsTouched.clear();
   propCountEl.textContent = "0";
-  wardrobeEl.classList.remove("opened");
+  document.querySelectorAll(".reveal").forEach(r => r.classList.remove("opened"));
   completion.classList.remove("show");
   buildList();
   placeObjects();
@@ -678,16 +804,14 @@ window.addEventListener("keydown", e => {
     const help = document.getElementById("help");
     if (help) help.style.display = "none";
   }
-  if (e.key === "d" || e.key === "D") {
-    document.body.classList.toggle("debug-props");
-  }
+  if (e.key === "d" || e.key === "D") document.body.classList.toggle("debug-props");
 });
 
 // Init
 spawnMotes();
 setupParallax();
 setupProps();
-setupWardrobe();
+setupReveals();
 resetGame();
 fitStage();
 setInterval(updateHintLabel, 250);

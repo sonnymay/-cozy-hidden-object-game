@@ -8,7 +8,7 @@ Cozy hidden-object game in Godot 4. Differentiator: scenes that *breathe, twinkl
 
 ## Current state — last updated 2026-05-23
 
-**Phase 1 scaffold complete, unverified.** Files on disk; initial git commit at `9b30e41`. Godot is not installed locally so the prototype has never actually launched.
+**Phase 1 scaffold complete, Godot smoke-validated.** Initial git commit at `9b30e41`. Godot 4.6.3 stable installed locally. `godot --headless --quit-after 60` runs the project for 60 frames with zero errors. F5 launch from the GUI editor still pending user click-through but the scene loader, autoloads, and `.tscn` files all parse cleanly.
 
 Scaffold audit completed before commit — known fragile spots already addressed:
 - Removed hand-written `InputEventKey` Object syntax from `project.godot`; gameplay now uses Godot's built-in `ui_cancel` action (Esc) for back-to-menu.

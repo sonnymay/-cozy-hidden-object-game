@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://b6t85oxuexujk"
+
+[deps]
+
+files=["res://assets_log.en.translation", "res://assets_log.en.translation", "res://assets_log.en.translation", "res://assets_log.source.translation", "res://assets_log.license.translation", "res://assets_log.notes.translation"]
+
+source_file="res://assets_log.csv"
+dest_files=["res://assets_log.en.translation", "res://assets_log.en.translation", "res://assets_log.en.translation", "res://assets_log.source.translation", "res://assets_log.license.translation", "res://assets_log.notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
