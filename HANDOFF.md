@@ -37,7 +37,7 @@ What's stubbed / falls back:
 ## Decisions locked
 
 - **OS target:** macOS only for now (Windows later)
-- **Git:** local-only, no remote until vertical slice
+- **Git:** remote at https://github.com/sonnymay/-cozy-hidden-object-game (added 2026-05-24, overriding earlier local-only decision). Push to `origin main` on every commit going forward.
 - **Renderer:** GL Compatibility (low-spec friendly)
 - **Save format:** `ConfigFile` at `user://save.cfg` with `.bak` rotation
 - **Scene data:** JSON in `data/`, hot-tunable without recompile
