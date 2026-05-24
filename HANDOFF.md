@@ -6,7 +6,15 @@
 
 Cozy hidden-object game in Godot 4. Differentiator: scenes that *breathe, twinkle, and react to touch* (parallax + ambient particles + interactive props + reveal interactions). Solo dev, 12-15 months part-time, target $7.99 on Steam.
 
-## Current state — last updated 2026-05-24 (Brief 5 art wired)
+## STATUS: CANCELLED 2026-05-24
+
+User set Lost and Found Co. as the quality bar. After full iteration (two art directions, complete motion system, 3 alive layers, hover affordances, bespoke prop reactions, NPCs, reveal interactions, placement editor), the result did not match the bar. The honest gap: AI image gen cannot produce hand-animated character frames, capping solo-dev + AI at ~60-70% of LFC's perceived quality.
+
+Project closed without shipping. Repo + assets + scaffold remain — see `dev_journal.md` for what's reusable.
+
+---
+
+## Current state — last updated 2026-05-24 (final wired state before cancel)
 
 **Scene_01 is now a cozy living room in flat-vector isometric style.** Brief 5 production art (35 PNGs) landed and is wired into Godot. Bakery scaffolding removed (parallax, wind shader, mascot, old prop IDs). `godot --headless --quit-after 180 res://scenes/gameplay.tscn` boots zero errors.
 

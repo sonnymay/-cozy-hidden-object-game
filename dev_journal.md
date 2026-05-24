@@ -35,6 +35,35 @@ Rejected the busy-shelf options (02 bookshop, 04 post office, 07 clockmaker, 09 
 - Pick mascot silhouette (bird / bunny / cat).
 - Train mascot LoRA once style is locked.
 
+## 2026-05-24 — Project cancelled
+
+After two full art directions (painterly bakery → flat-vector isometric living room) and the full motion system (ambient choreographer + critters + bespoke prop reactions + hover feedback + reveal interactions + placement editor) shipped on the iso scene, the F5 result still did not match the user's reference bar (Lost and Found Co.).
+
+Honest assessment of why:
+- LFC has hand-painted scenes with hundreds of unique animated elements per scene.
+- AI image gen produces consistent single static sprites but cannot reliably produce multi-frame character animation (drift between frames).
+- The toolchain (Claude Code + Codex + Godot) caps at ~60-70% of LFC's perceived quality for a solo developer. The remaining 30-40% requires a human 2D animator — no AI shortcut exists for that today.
+- User set LFC as the bar. The gap was honest and unbridgeable with this toolchain.
+
+What we preserved (genuinely reusable for any future 2D Godot project):
+- `scripts/`: scene_loader, game_manager, save_system, hint_system (reveal-aware),
+  object_clickable, ambient_choreographer (7 behaviour types), critter (state-machine
+  with hop/stretch/dart/drift), placement_editor (F2 drag-to-place w/ z_index + JSON
+  save-back), gameplay.gd (full HOG loop)
+- `scenes/`: main_menu, gameplay, scene_template, pause_menu, settings
+- `data/scene_01.json` schema (hidden_objects + reveals + props)
+- `assets_log.csv` with 80+ logged AI-art generations including the exact style-anchor
+  workflow (Brief 1-6 patterns)
+- `LFC_REFERENCE.md` with two-round research on LFC's actual mechanics + visual identity
+- All Godot scaffolding, save system, hint system
+
+What this repo can be used for next:
+- Template for any 2D Godot project (the scaffold is solid)
+- Reference for solo-dev + AI-art workflow constraints (what works, what doesn't)
+- Pivot to a different genre that doesn't require character animation (sticker
+  book, decoration game, idle/incremental cozy game)
+- Stop here — the code + assets remain, no further work planned
+
 ## 2026-05-24 — Project pivot: bakery → isometric living room
 
 User shared a reference screenshot of a Toca-Boca-style isometric cozy HOG with cutaway rooms + flat vector art. Painterly bakery direction abandoned.
